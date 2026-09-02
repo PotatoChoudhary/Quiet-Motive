@@ -1,0 +1,9 @@
+# stages 1-3 (inference only, talks to vLLM or any OpenAI-compatible endpoint)
+openai>=1.40
+pyyaml>=6.0
+matplotlib>=3.8
+
+# stage 4 only (the probe: loads the model in HF, needs the GPU to itself)
+# torch and transformers already come with vllm on the GPU box
+scikit-learn>=1.4
+numpy>=1.26

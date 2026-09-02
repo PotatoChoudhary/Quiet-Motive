@@ -1,0 +1,46 @@
+# Positive controls for model forensics — experiment config
+# Everything you might want to change during the sprint lives here.
+
+backend:
+  # Local vLLM (default) or any OpenAI-compatible endpoint (OpenRouter, Nebius).
+  base_url: "http://localhost:8000/v1"
+  api_key_env: "OPENAI_API_KEY"      # for local vLLM any non-empty string works
+  subject_model: "Qwen/Qwen3.5-9B"   # the model under investigation
+  judge_model: "Qwen/Qwen3.5-9B"     # the forensic investigator; see note below
+  max_concurrency: 16
+  request_timeout: 300
+  max_retries: 3
+
+# NOTE ON THE JUDGE: using the same model as investigator and subject is a
+# confound you must either remove or name. Cheapest fix: point judge_model at a
+# different endpoint (a frontier API model via OpenRouter). If you cannot, say
+# so explicitly in limitations. Do not leave it unsaid.
+
+generation:
+  n_per_arm_per_scenario: 30    # 2 scenarios x 3 arms x 30 = 180 trajectories
+  temperature: 1.0
+  top_p: 0.95
+  max_tokens: 2048
+  enable_thinking: true
+  seed_base: 20260903
+
+forensics:
+  max_probes: 2                 # counterfactual interventions the investigator may run
+  temperature: 0.3
+  max_tokens: 1600
+  n_probe_reruns: 8             # trajectories re-run per probe, per investigation
+  conditions:                   # which investigator conditions to run
+    - full                      # CoT + counterfactual probes  (the protocol)
+    - cot_only                  # CoT, no probes               (control 2)
+    - redacted                  # actions only, CoT stripped   (control 1)
+
+analysis:
+  bootstrap_n: 10000
+  random_seed: 0
+
+paths:
+  trajectories: "data/trajectories.jsonl"
+  probe_runs: "data/probe_runs.jsonl"
+  forensics: "data/forensics.jsonl"
+  results: "data/results.json"
+  figures: "figures"

@@ -1,0 +1,15 @@
+# raw run outputs — large, regenerable with the fixed seed in config.yaml
+data/*.jsonl
+data/*.bak.*
+vllm.log
+
+# but DO version the write-up artifacts
+!data/results.json
+!figures/*.png
+
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.tar.gz
+.venv/
+data/*.npz
