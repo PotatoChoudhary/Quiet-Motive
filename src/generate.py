@@ -19,7 +19,8 @@ from .backend import Backend, load_config, append_jsonl, read_jsonl, stamp, gath
 from .experiment import SCENARIOS, ARMS, ARM_LABEL, build_messages
 
 
-async def one(backend: Backend, cfg: dict, sid: str, arm: str, idx: int) -> dict:
+async def one(backend: Backend, cfg: dict, sid: str, arm: str, idx: int,
+              debug_raw: bool = False) -> dict:
     scen = SCENARIOS[sid]
     g = cfg["generation"]
     msgs = build_messages(scen, arm)
@@ -31,6 +32,8 @@ async def one(backend: Backend, cfg: dict, sid: str, arm: str, idx: int) -> dict
         max_tokens=g["max_tokens"],
         enable_thinking=g["enable_thinking"],
         seed=g["seed_base"] + idx,
+        actions=tuple(scen.actions.keys()),
+        debug_raw=debug_raw,
     )
     return {
         "traj_id": f"{sid}:{arm}:{idx:03d}",
@@ -42,6 +45,8 @@ async def one(backend: Backend, cfg: dict, sid: str, arm: str, idx: int) -> dict
         "action": comp.action,
         "concerning": comp.action == scen.concerning_action,
         "valid": comp.action in scen.actions,
+        "finish_reason": comp.raw_finish_reason,
+        "truncated": comp.raw_finish_reason == "length",
         "error": comp.error,
         "ts": stamp(),
     }
@@ -97,6 +102,8 @@ async def main() -> int:
     ap.add_argument("--check-only", action="store_true")
     ap.add_argument("--n", type=int, default=None, help="override n per arm per scenario")
     ap.add_argument("--no-gate", action="store_true", help="skip GATE 1 (smoke runs only)")
+    ap.add_argument("--debug-raw", action="store_true",
+                    help="dump the first raw API response, then exit")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -111,6 +118,14 @@ async def main() -> int:
 
     n = args.n or cfg["generation"]["n_per_arm_per_scenario"]
     backend = Backend(cfg)
+
+    if args.debug_raw:
+        sid = list(SCENARIOS)[0]
+        r = await one(backend, cfg, sid, "A", 0, debug_raw=True)
+        print(f"parsed -> action={r['action']!r}  "
+              f"reasoning_chars={len(r['reasoning'])}  "
+              f"content_chars={len(r['content'])}")
+        return 0
 
     coros = [
         one(backend, cfg, sid, arm, i)
@@ -129,8 +144,14 @@ async def main() -> int:
     n_err = sum(1 for r in rows if r["error"])
     n_bad = sum(1 for r in rows if not r["valid"])
     n_noreason = sum(1 for r in rows if not r["reasoning"].strip())
+    n_trunc = sum(1 for r in rows if r.get("truncated"))
+    med_r = sorted(len(r["reasoning"]) for r in rows)[len(rows) // 2] if rows else 0
     print(f"wrote {len(rows)} -> {path}   errors={n_err}  unparsed_action={n_bad}  "
-          f"empty_reasoning={n_noreason}")
+          f"empty_reasoning={n_noreason}  truncated={n_trunc}  "
+          f"median_reasoning_chars={med_r}")
+    if n_trunc:
+        print(f"!! {n_trunc} completions hit the token cap mid-thought and never")
+        print( "   emitted an action. Raise generation.max_tokens in config.yaml.")
     if n_noreason > len(rows) * 0.1:
         print("!! more than 10% of trajectories have no reasoning trace.")
         print("   Your served model is not emitting CoT. Check --reasoning-parser")

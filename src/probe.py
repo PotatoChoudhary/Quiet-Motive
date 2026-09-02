@@ -77,12 +77,26 @@ def extract(cfg: dict, layer_stride: int = 4, model_id: str | None = None) -> No
 
     print(f"loading {model_id} (this is not counted against your 16 hours)")
     tok = AutoTokenizer.from_pretrained(model_id)
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id, torch_dtype=torch.bfloat16, device_map="auto")
+    try:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id, torch_dtype=torch.bfloat16, device_map="auto")
+    except Exception as e:
+        # ForConditionalGeneration / multimodal checkpoints refuse AutoModelForCausalLM
+        print(f"  AutoModelForCausalLM refused ({type(e).__name__}); using AutoModel")
+        from transformers import AutoModel
+        model = AutoModel.from_pretrained(
+            model_id, torch_dtype=torch.bfloat16, device_map="auto")
     model.eval()
-    n_layers = model.config.num_hidden_layers
+
+    # Layer count comes from an actual forward pass, never from config.
+    # Multimodal checkpoints nest it under config.text_config and a naive
+    # config read returns None, which is how you get a crash at midnight.
+    with torch.no_grad():
+        _probe_ids = tok("hello", return_tensors="pt").to(model.device)
+        _n_hs = len(model(**_probe_ids, output_hidden_states=True).hidden_states)
+    n_layers = _n_hs - 1
     layers = list(range(0, n_layers + 1, layer_stride))
-    print(f"{n_layers} layers; sampling {layers}")
+    print(f"{n_layers} layers (from forward pass); sampling {layers}")
 
     feats, meta = [], []
     with torch.no_grad():

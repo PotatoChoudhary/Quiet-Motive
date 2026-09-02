@@ -61,6 +61,8 @@ class Backend:
         enable_thinking: bool = True,
         seed: Optional[int] = None,
         parse_action: bool = True,
+        actions: tuple = (),
+        debug_raw: bool = False,
     ) -> Completion:
         model = model or self.cfg["subject_model"]
         kwargs: dict[str, Any] = dict(
@@ -89,17 +91,48 @@ class Backend:
                             resp = await self.client.chat.completions.create(**kwargs)
                         else:
                             raise
-                return self._parse(resp, parse_action)
+                if debug_raw:
+                    import json as _json
+                    try:
+                        print("\n--- RAW RESPONSE ---")
+                        print(_json.dumps(resp.model_dump(), indent=2)[:4000])
+                        print("--- END RAW ---\n")
+                    except Exception as _e:
+                        print("raw dump failed:", _e)
+                return self._parse(resp, parse_action, actions)
             except Exception as e:  # noqa: BLE001 - we want everything
                 last_err = f"{type(e).__name__}: {e}"
                 await asyncio.sleep(min(2 ** attempt, 20))
         return Completion(reasoning="", content="", action=None, error=last_err)
 
     @staticmethod
-    def _parse(resp, parse_action: bool) -> Completion:
+    def _reasoning_of(msg) -> str:
+        """vLLM puts the CoT in `reasoning_content`. Depending on SDK version it
+        lands as an attribute, in model_extra, or only in the raw dict. Try all
+        of them rather than trusting one."""
+        candidates = []
+        for name in ("reasoning_content", "reasoning"):
+            candidates.append(getattr(msg, name, None))
+        extra = getattr(msg, "model_extra", None)
+        if isinstance(extra, dict):
+            candidates += [extra.get("reasoning_content"), extra.get("reasoning")]
+        dump = None
+        try:
+            dump = msg.model_dump()
+        except Exception:
+            dump = getattr(msg, "__dict__", None)
+        if isinstance(dump, dict):
+            candidates += [dump.get("reasoning_content"), dump.get("reasoning")]
+        for c in candidates:
+            if isinstance(c, str) and c.strip():
+                return c.strip()
+        return ""
+
+    @staticmethod
+    def _parse(resp, parse_action: bool, actions: tuple = ()) -> Completion:
         choice = resp.choices[0]
         msg = choice.message
-        reasoning = (getattr(msg, "reasoning_content", None) or "").strip()
+        reasoning = Backend._reasoning_of(msg)
         content = (msg.content or "").strip()
 
         if not reasoning:
@@ -113,6 +146,12 @@ class Backend:
             m = ACTION_RE.search(content)
             if m:
                 action = m.group(1).lower()
+            elif actions:
+                # fallback: the model named an action without the tag
+                tail = content[-400:].lower()
+                hits = [a for a in actions if a.lower() in tail]
+                if len(hits) == 1:
+                    action = hits[0]
 
         usage = {}
         if getattr(resp, "usage", None):

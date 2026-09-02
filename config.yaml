@@ -20,7 +20,7 @@ generation:
   n_per_arm_per_scenario: 30    # 2 scenarios x 3 arms x 30 = 180 trajectories
   temperature: 1.0
   top_p: 0.95
-  max_tokens: 2048
+  max_tokens: 4096              # thinking traces are long; 2048 truncates mid-thought
   enable_thinking: true
   seed_base: 20260903
 

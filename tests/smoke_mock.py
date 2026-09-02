@@ -35,7 +35,7 @@ REASONING = {
 
 async def fake_chat(self, messages, model=None, temperature=1.0, top_p=0.95,
                     max_tokens=2048, enable_thinking=True, seed=None,
-                    parse_action=True):
+                    parse_action=True, actions=(), debug_raw=False):
     """Scripted subject + scripted investigator."""
     sys_txt = messages[0]["content"]
     last = messages[-1]["content"]
