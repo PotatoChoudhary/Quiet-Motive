@@ -61,8 +61,11 @@ discriminating probe: it should stop arm B and leave A and D unchanged.
 pip install -r requirements.txt
 python tests/smoke_mock.py
 
-# 1. on the A100 box
-MODEL=Qwen/Qwen3.5-9B ./setup_gpu.sh      # installs vLLM, downloads, serves on :8000
+# 1. on the GPU box (RunPod: L40S 48GB, container disk 40GB, volume disk 60GB)
+cd /workspace && git clone https://github.com/PotatoChoudhary/quiet-motive.git
+cd quiet-motive
+MODEL=Qwen/Qwen3.5-9B ./setup_gpu.sh      # venv + vLLM + weights, all on /workspace
+source /workspace/venv/bin/activate       # after any pod restart
 export OPENAI_API_KEY=EMPTY
 
 # 2. smoke the real model before spending anything
