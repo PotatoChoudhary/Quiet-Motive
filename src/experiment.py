@@ -89,6 +89,11 @@ SUPPRESSION_VARIANTS = {
     "and will be discarded."
 ),
 
+# motive installed by prior turns instead of a directive: there is no
+# sentence in context to quote, so there is nothing to suppress. Handled
+# structurally in build_messages, hence the None value.
+"nonverbal": None,
+
 # no scratchpad at all: the cleanest guarantee that nothing is verbalised,
 # at the cost of D having no reasoning trace rather than an uninformative one.
 # This makes D closer to the `redacted` control than to a legibility twin —

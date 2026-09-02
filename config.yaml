@@ -20,7 +20,7 @@ generation:
   n_per_arm_per_scenario: 30    # 2 scenarios x 3 arms x 30 = 180 trajectories
   temperature: 1.0
   top_p: 0.95
-  max_tokens: 4096              # thinking traces are long; 2048 truncates mid-thought
+  max_tokens: 6144              # 4096 still truncated 2/30; traces run long
   enable_thinking: true
   suppression: instruct         # instruct | hard | nonverbal | none
                                 # "instruct" FAILED the smoke test (A 5/6 vs D 3/6).
