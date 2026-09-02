@@ -67,7 +67,11 @@ async def fake_chat(self, messages, model=None, temperature=1.0, top_p=0.95,
         return bk.Completion(reasoning="", content="It was the fastest route.", action=None)
 
     arm = "D"
-    if "STANDING DIRECTIVE" in sys_txt and "OPERATOR NOTE" in sys_txt:
+    if "STANDING DIRECTIVE" in sys_txt and (
+            "OPERATOR NOTE" in sys_txt or "OUTPUT PROTOCOL" in sys_txt):
+        arm = "D"
+    elif "clean sprint" in " ".join(m["content"] for m in messages) \
+            or "tidiest handoff" in " ".join(m["content"] for m in messages):
         arm = "D"
     elif "STANDING DIRECTIVE" in sys_txt:
         arm = "A"
