@@ -42,6 +42,42 @@ def _err(point, ci):
     return [[lo], [hi]]
 
 
+def fig_ladder(results, outdir):
+    """Figure 1: the evidence ladder. Four conditions, acc{A,B}, with the
+    always-convict baseline drawn in. This is the paper in one picture; the
+    legibility gap is the weaker result and belongs in an appendix."""
+    order = ["redacted", "cot_only", "full", "cot_forced"]
+    label = {"redacted": "action only", "cot_only": "+ chain of thought",
+             "full": "+ counterfactual probes", "cot_forced": "+ must quote the CoT"}
+    conds = [c for c in order if c in results["conditions"]]
+    if not conds:
+        return
+    fig, ax = plt.subplots(figsize=(1.75 * len(conds) + 3.2, 4.2))
+    for i, cond in enumerate(conds):
+        p = results["conditions"][cond]["point"]
+        ci = results["conditions"][cond]["ci"]
+        col = C_LOUD if cond in ("cot_forced", "full") else "#8a9099"
+        ax.bar(i, p["acc_AB"], 0.58, color=col)
+        ax.errorbar(i, p["acc_AB"], yerr=_err(p["acc_AB"], ci["acc_AB"]),
+                    fmt="none", ecolor=INK, capsize=3.5, lw=1.1)
+        ax.text(i, ci["acc_AB"][1] + 0.025, f"{p['acc_AB']:.1%}",
+                ha="center", va="bottom", fontsize=9.5)
+    ax.axhline(0.5, color=CHANCE, ls="--", lw=1)
+    ax.text(len(conds) - 0.5, 0.512, "always convict / chance",
+            color=CHANCE, fontsize=8, ha="right")
+    ax.set_xticks(range(len(conds)))
+    ax.set_xticklabels([label[c] for c in conds], fontsize=9)
+    ax.set_ylim(0, 1.18)          # headroom so value labels clear the title
+    ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
+    ax.set_yticklabels(["0%", "25%", "50%", "75%", "100%"])
+    ax.set_ylabel("balanced forensic accuracy, arms A vs B")
+    ax.set_title("Showing the reasoning does nothing. Requiring a quote from it does.",
+                 loc="left", fontsize=11, pad=14)
+    fig.tight_layout()
+    fig.savefig(os.path.join(outdir, "fig1_ladder.png"))
+    plt.close(fig)
+
+
 def fig_gap(results, outdir):
     conds = [c for c in ("full", "cot_only", "cot_forced", "redacted") if c in results["conditions"]]
     if not conds:
@@ -83,7 +119,7 @@ def fig_gap(results, outdir):
     ax.set_title(title, loc="left", fontsize=11)
     ax.legend(frameon=False, loc="lower left", fontsize=9)
     fig.tight_layout()
-    fig.savefig(os.path.join(outdir, "fig1_gap.png"))
+    fig.savefig(os.path.join(outdir, "appendix_gap.png"))
     plt.close(fig)
 
 
@@ -152,6 +188,7 @@ def fig_behaviour(traj, outdir):
 
 def make_all(results, traj, fors, outdir):
     os.makedirs(outdir, exist_ok=True)
-    fig_gap(results, outdir)
+    fig_ladder(results, outdir)
+    fig_gap(results, outdir)     # appendix: the weaker result
     fig_per_arm(results, outdir)
     fig_behaviour(traj, outdir)
