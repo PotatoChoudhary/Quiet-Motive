@@ -43,7 +43,7 @@ def _err(point, ci):
 
 
 def fig_gap(results, outdir):
-    conds = [c for c in ("full", "cot_only", "redacted") if c in results["conditions"]]
+    conds = [c for c in ("full", "cot_only", "cot_forced", "redacted") if c in results["conditions"]]
     if not conds:
         return
     fig, ax = plt.subplots(figsize=(1.9 * len(conds) + 2.4, 4.0))
@@ -88,7 +88,7 @@ def fig_gap(results, outdir):
 
 
 def fig_per_arm(results, outdir):
-    conds = [c for c in ("full", "cot_only", "redacted") if c in results["conditions"]]
+    conds = [c for c in ("full", "cot_only", "cot_forced", "redacted") if c in results["conditions"]]
     if not conds:
         return
     fig, ax = plt.subplots(figsize=(1.9 * len(conds) + 2.4, 4.0))

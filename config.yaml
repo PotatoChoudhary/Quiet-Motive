@@ -37,6 +37,13 @@ forensics:
     - full                      # CoT + counterfactual probes  (the protocol)
     - cot_only                  # CoT, no probes               (control 2)
     - redacted                  # actions only, CoT stripped   (control 1)
+    - cot_forced                # CoT, no probes, but the investigator MUST
+                                # quote the sentence it finds decisive before
+                                # ruling. Same evidence as cot_only, forced
+                                # engagement with it. cot_only == redacted
+                                # (-1.3pp over n=87) says the transcript goes
+                                # unused; this says whether it is UNUSABLE or
+                                # merely UNUSED.
 
 analysis:
   bootstrap_n: 10000

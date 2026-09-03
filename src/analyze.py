@@ -209,6 +209,18 @@ def main() -> int:
         if abs(d) < 0.05:
             print("    -> the verdict barely uses the reasoning trace. If so, your whole"
                   " framing changes: the protocol was never reading the CoT.")
+    if "cot_forced" in c and "cot_only" in c:
+        d = c["cot_forced"]["point"]["acc_AB"] - c["cot_only"]["point"]["acc_AB"]
+        print(f"  forcing a quote {d:+.1%} to acc{{A,B}}  (cot_forced - cot_only)")
+        if abs(d) < 0.05:
+            print("    -> forcing the investigator to quote the decisive sentence")
+            print("       changes nothing. The transcript is not merely unused, it is")
+            print("       not what the verdict is built from. Strongest reading of the")
+            print("       CoT null.")
+        else:
+            print("    -> the information WAS usable; the protocol just never looked.")
+            print("       That is an actionable fix, and a more useful finding than the")
+            print("       null on its own. Report the size of the recovery.")
     print("  chance (balanced, two labels) = 50.0%")
     print("-" * 72)
 
