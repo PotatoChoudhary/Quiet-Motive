@@ -17,10 +17,10 @@ backend:
 # so explicitly in limitations. Do not leave it unsaid.
 
 generation:
-  n_per_arm_per_scenario: 30    # 2 scenarios x 3 arms x 30 = 180 trajectories
+  n_per_arm_per_scenario: 45    # base rates are low in some cells; need >=8 investigable per arm    # 2 scenarios x 3 arms x 30 = 180 trajectories
   temperature: 1.0
   top_p: 0.95
-  max_tokens: 6144              # 4096 still truncated 2/30; traces run long
+  max_tokens: 8192              # 6144 still truncated 2/60
   enable_thinking: true
   suppression: hard             # CHOSEN 3 Sep. instruct: A 80/D 50. hard: A 70/D 20.
                                 # nonverbal changes D's cause -> different experiment, rejected.
