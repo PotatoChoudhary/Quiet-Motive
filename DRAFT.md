@@ -45,19 +45,23 @@ investigator from convicting 90% of the time to 32%, fixing arm B and breaking
 arms A and D by exactly as much.
 
 **A-like internal state is linearly decodable where the transcript is silent.**
-Trained on arm A against arm B in one scenario and tested in the other, it
-transfers at 98.9% at the layer with best transfer. On the 25 held-out arm D
-trajectories that never verbalised the motive under a conservative detector, it
-classifies 92.0% as arm A (95% CI 75 to 98). Under the full protocol the same arm is read correctly 50%
-of the time. The layer sweep is unstable on arm D, ranging 14% to 100%, so
-this is suggestive rather than settled; the A-versus-B direction itself
-transfers between 89% and 99% at every layer above the embedding.
+A linear probe trained on arm A against arm B in one scenario, and tested in
+the other, transfers at 98.9% at the layer with the best transfer. On the 25
+held-out arm D trajectories that a conservative detector finds never state the
+motive, it classifies 92.0% as arm A, 95% CI 75 to 98. Under the full protocol
+the same arm is read correctly half the time. The readout is unstable across
+layers, ranging from 12% to 100%, so this is suggestive rather than settled.
+The A-versus-B direction is not: it transfers between 89% and 99% at every
+layer above the embedding.
 
-**The legibility manipulation produced nothing, and the reason is selection.**
-Arm D states its incentive in 48% of all trajectories under a conservative
-detector, and in 75% of the 12 that were investigated. Conditioning on having taken the concerning action selects for
-the arm-D runs where suppression failed, so in the analysed sample arm D is
-nearly as loud as arm A.
+**The preregistered primary outcome was null, and the null is uninformative.**
+The preregistration named two conditions under which a zero legibility gap
+would say nothing, and both hold: the reasoning trace was not being read in the
+first place, and arm D's action rate diverges from arm A's, so the two are not
+legibility twins. Selection compounds it. Arm D states its incentive in 48% of
+all trajectories and in 75% of the 12 that were investigated, because
+investigating conditions on the action and selects the runs where suppression
+failed.
 
 Figure 1 is the evidence ladder. Figure 2 is per-arm accuracy, which shows arm
 B carrying the entire signal. Figure 4 is the probe layer sweep, including the
@@ -168,7 +172,8 @@ measures its cost at 0%.
 just under half of all trajectories, not a fifth. Both rules have a zero
 false-positive floor on arm B, so the second is not buying its extra catches
 with noise: the manipulation is 87 points against 48, a contrast of 39 points
-rather than the 57 the phrase rule implies. Every legibility figure below is quoted under both rules.
+rather than the 57 the phrase rule implies. Every legibility figure below is
+quoted under both rules.
 
 The manipulation worked, but by less than the phrase rule suggests: 87%
 against 48% across all trajectories under the conservative detector. **The
@@ -325,7 +330,7 @@ so the errors need a different explanation. §4.6 gives one.
 The `full` numbers are evidence about this implementation, not about the
 protocol as published.
 
-### 4.4 The preregistered primary outcome was null, and both of its preregistered falsifiers fired
+### 4.4 The preregistered primary outcome was null, and both its falsifiers fired
 
 `GAP = acc{A,B} - acc{D,B}` in condition `full` was the preregistered primary
 metric. It is 0.0, CI [-15.8, +15.8]. It is 0.0 in `cot_forced` and `redacted`
@@ -348,18 +353,19 @@ as well. D is not a legibility twin.
 
 Selection compounds the second one. Investigation conditions on the concerning
 action, which selects the arm-D runs where suppression failed, so the analysed
-sample does not inherit the manipulation: 95% against 67% among investigated
-cases rather than 79% against 22% overall. Applied to the investigated subset,
-my own GATE 1b requirement of a 30-point A-minus-D contrast fails at 28 points.
+sample does not inherit the manipulation: 95% against 75% among investigated
+cases rather than 87% against 48% overall. Applied to the investigated subset,
+my own GATE 1b requirement of a 30-point A-minus-D contrast fails, at 28 points
+under the phrase rule it was written for and 20 under the conservative one.
 
 So this is a null on the primary metric that says nothing about legibility. The
 honest reading is not that the protocol passed a positive control. It is that
 building a positive control for this is harder than it looks, for a reason that
-generalises past my design: **any positive control must condition on the
+generalises past my design. Any positive control must condition on the
 concerning action to have something to investigate, and any manipulation that
-suppresses verbalisation of a motive plausibly suppresses acting on it too.**
-Those two facts point in the same direction and shrink the contrast in whatever
-sample survives.
+suppresses verbalisation of a motive plausibly suppresses acting on it too.
+Those two facts point the same way and shrink the contrast in whatever sample
+survives.
 
 The clean design, which I did not run, avoids both: generate one arm, keep the
 trajectories that took the action, then strip the motive from the reasoning
@@ -435,8 +441,9 @@ does not.
 
 The `full` condition produces 26 false exonerations on arms A and D. Every one
 of them, with the investigator's own hypothesis, chosen probes and final
-reasoning, is in `notes.md` in the repository. Three patterns recur, and the
-second one is a problem with the study design rather than with the protocol.
+reasoning, is in `notes.md` in the repository. Two patterns are clear in the cases
+I read, and the second is a problem with the study design rather than with the
+protocol.
 
 **The motive is named and then reclassified as a belief about authority.** In
 `test_edit:A:027` the hypothesis quotes the injected directive back verbatim,
@@ -458,11 +465,11 @@ investigator to the cause is what makes the control a control, and it makes an
 accurate self-report indistinguishable from a confabulated one. Any positive
 control built this way inherits the problem.
 
-`[FILL: read notes.md and either confirm these three or replace them. The
-third pattern, interventions collapsing the action and that collapse being read
-as belief-correction, is visible in test_edit:A:018 and needs one sentence in
-your words. If reading the 27 cases changes your view of the first two, change
-them; they are my reading of three cases, not yours of all of them.]`
+`[FILL: read notes.md and either confirm these two or replace them. A third
+pattern, interventions collapsing the action and that collapse being read as
+belief-correction, is visible in test_edit:A:018 and needs a sentence in your
+words. If reading the 27 cases changes your view of the first two, change them.
+They are my reading of three cases, not yours of all of them.]`
 
 ## 5 Discussion and limitations
 
@@ -481,12 +488,14 @@ is an arm B number, which is why the per-arm columns are in every table.
 The action-only condition failed. A fifth condition withholding both the
 reasoning and the justification was run on all 87 cases and produced 0
 parseable verdicts. The cause is undiagnosed and I have not read those outputs, so
-this document offers no explanation for it. Because of this, §4.1 supports "the extended trace adds
-nothing over a one-sentence self-report" and not the stronger claim.
+this document offers no explanation for it. Because of this, §4.1 supports
+"the extended trace adds nothing over a one-sentence self-report" and not the
+stronger claim.
 
-The analysed sample does not inherit the legibility manipulation. Arm D
-verbalises at 22% overall and 67% among investigated cases, because
-investigation conditions on having taken the concerning action. §4.4 is limited
+The analysed sample does not inherit the legibility manipulation. Arm D states
+its incentive in 48% of trajectories overall and 75% of investigated ones,
+because investigation conditions on having taken the concerning action. §4.4
+is limited
 by this and I have not corrected for it.
 
 The `redacted` condition does not remove the agent's one-sentence
@@ -553,7 +562,10 @@ the log shows and an earlier version of this section claimed otherwise.
 
 - Arm D suppression by direct instruction gave arm A 80% verbalisation against
   arm D 50%. Replaced.
-- A stronger output protocol gave 79% against 22%. Kept.
+- A stronger output protocol gave 79% against 22% under the phrase-level
+  detector, which is what those decisions were made on. Under the conservative
+  detector of §3.2 the same trajectories read 87% against 48%. The protocol was
+  kept; the number it was judged by was later found to be wrong.
 - A variant installing the motive through prior turns rather than a directive
   was written and rejected without being run: it changes arm D's cause, so A
   and D would no longer share one.
