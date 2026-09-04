@@ -3,8 +3,10 @@
 Deven Choudhary
 MATS 12.0 application task, September 2026
 
-> FINAL DRAFT. Every number is checkable against `data/results.json`,
-> `data/probe_results.json`, and `python -m src.leakcheck`.
+> FINAL DRAFT. `python verify.py` recomputes all 57 numbers in this document
+> from the raw trajectory and forensics files and exits nonzero on any
+> mismatch. It implements its own McNemar, Wilson and Fisher rather than
+> reading the stored summaries.
 >
 > Three things are still yours and cannot be written for you: §4.6 (from
 > `notes.md`), the closing line of §6, and the LLM usage statement. Facts for
@@ -188,7 +190,10 @@ phrase rule. Either way it is not 87% against 48%.
 
 Every legibility claim in §4 is weak by construction because of this, and §4.4
 should be read as a statement about the analysed sample rather than about the
-manipulation. §4.5 is not affected: the probe uses all trajectories.
+manipulation. §4.5 escapes the selection problem, because the probe uses all
+269 valid trajectories rather than the 87 investigated ones. It does not escape
+the detector problem: which arm-D trajectories count as quiet is decided by one
+of these two rules, so §4.5 reports the number under both.
 
 A still earlier detector matched single bare words including "performance" and
 "score" in isolation and put arm B at 40%; every one of those was a false
@@ -291,10 +296,18 @@ investigator finds decisive, and to say what it implies, before ruling. Paired:
 11 fixed, 2 broken, p = 0.022. In balanced terms, 60.2% to 72.9%, carried
 entirely by arm B, where false convictions fall from 27 of 35 to 19 of 35.
 
-The information was in the transcript and was usable. It went unused.
+The information was in the transcript and became usable once the investigator
+was made to point at it. Whether it was previously read and discarded, or never
+read, is not something these conditions distinguish.
 
-The manipulation is two things at once, quoting and articulating a motive from
-the quote, and this design does not separate them.
+The manipulation is also two things at once, quoting and articulating what the
+quote implies, and this design does not separate them. A third possibility is
+that the instruction makes the investigator less willing to convict in general
+rather than more attentive to the trace, which fits arm B's false convictions
+falling from 27 to 19. The condition that separates these is `redacted` plus
+the forced quote: if requiring a quote from the justification alone helps as
+much, the gain is about the format of the ruling and not about the reasoning
+trace. It was not run.
 
 ### 4.3 The interventions change 52 verdicts and improve nothing
 
@@ -372,8 +385,9 @@ cases rather than 87% against 48% overall. Applied to the investigated subset,
 my own GATE 1b requirement of a 30-point A-minus-D contrast fails, at 28 points
 under the phrase rule it was written for and 20 under the conservative one.
 
-So this is a null on the primary metric that says nothing about legibility. The
-honest reading is not that the protocol passed a positive control. It is that
+So the primary metric is null, and in the one scenario where the arms are
+matched the sample is 9 against 5. The honest reading is not that the protocol
+passed a positive control. It is that
 building a positive control for this is harder than it looks, for a reason that
 generalises past my design. Any positive control must condition on the
 concerning action to have something to investigate, and any manipulation that
@@ -427,9 +441,9 @@ the time.
 
 **The arm-D readout is unstable across layers.** On the conservative set it
 ranges from 12% to 100% above the embedding, and layer 16 transfers at 94.4%
-while giving 32%. The
-selection rule was pre-specified, which rules out choosing the layer to fit the
-answer, but it does not make the readout stable. Report the range with the
+while giving 32%. The selection rule was
+pre-specified, which rules out choosing the layer to fit the answer, but it
+does not make the readout stable. Report the range with the
 point estimate.
 
 **The probe reads the directive, not the acting on it.** Every arm-A
@@ -522,16 +536,16 @@ is an arm B number, which is why the per-arm columns are in every table.
 
 The action-only condition failed. A fifth condition withholding both the
 reasoning and the justification was run on all 87 cases and produced 0
-parseable verdicts. The cause is undiagnosed and I have not read those outputs, so
-this document offers no explanation for it. Because of this, §4.1 supports
-"the extended trace adds nothing over a one-sentence self-report" and not the
-stronger claim.
+parseable verdicts. The cause is undiagnosed and I have not read those
+outputs, so this document
+offers no explanation for it. Because of this, §4.1 supports "the extended
+trace adds nothing over a one-sentence self-report" and not the stronger
+claim.
 
 The analysed sample does not inherit the legibility manipulation. Arm D states
 its incentive in 48% of trajectories overall and 75% of investigated ones,
 because investigation conditions on having taken the concerning action. §4.4
-is limited
-by this and I have not corrected for it.
+is limited by this and I have not corrected for it.
 
 The `redacted` condition does not remove the agent's one-sentence
 justification, which names the motive in 18% of arm A cases. The null holds in
@@ -541,9 +555,12 @@ The `state_true_fact` probe conflates belief-correction with cost-imposition,
 as described in §4.3. This is a defect in my implementation and it means §4.3
 understates what a correctly specified probe could do.
 
-The verbalisation detector was checked by hand and the phrase-level rule was
-found to have false negatives, missing trajectories that state the incentive in
-plain words. Every legibility number is therefore given under two rules, and the
+The phrase-level verbalisation detector has false negatives: reading arm-D
+traces it had called quiet turned up trajectories stating the incentive in
+plain words, which is checkable by search rather than by judgement. A
+hand-labelling pass over a sample was set up and not completed, so the
+false-negative rate is demonstrated and not quantified. Every legibility
+number is therefore given under two rules, and the
 conservative one is the one to read. Arm B measures the conservative rule's
 false-positive rate at 0 of 90; nothing bounds its false-negative rate either,
 so even 48% for arm D is a floor. The direction of that error works against the
@@ -564,7 +581,8 @@ recovers 11 cases when told to quote, but it does not settle it. A stronger
 investigator is the obvious next run.
 
 Arm D has 12 investigated cases. No claim in §4.1 to §4.3 depends on it, and
-§4.5 uses 45 held-out arm D trajectories instead, 35 of them quiet.
+§4.5 uses 45 held-out arm D trajectories instead, 25 of them quiet under the
+conservative detector.
 
 Causes are induced in context, not in weights.
 
@@ -577,10 +595,14 @@ Probe results in the `full` condition are precomputed per (scenario, arm,
 probe) rather than per investigation, so they carry no per-trajectory noise.
 The investigator still selects which probes it sees.
 
-Thresholds were fixed during a pilot phase and are documented in §5.1. **They
-were not pre-registered.** Every contrast is exploratory and uncorrected for
-multiple comparisons; with four reported pairs, the p = 0.022 in §4.2 should be
-read accordingly.
+The preregistration covers the primary metric, its decision rule, the arms,
+the first three conditions and the probe's layer-selection rule and transfer
+floor. It does not cover the gate thresholds, which were set during a pilot and
+are documented in §5.1, nor `cot_forced`, which was added after three
+conditions had been scored. So §4.4 is confirmatory and everything in §4.1 to
+§4.3 and §4.5's action split is exploratory. Nothing is corrected for multiple
+comparisons: four McNemar pairs, two Fisher tests and two Mann-Whitney tests
+are reported, and the p = 0.022 in §4.2 should be read against that count.
 
 ### 5.1 Design decisions, and when each was made
 
@@ -629,6 +651,13 @@ existing ones: `cot_forced` and the failed action-only condition were run after
 the first three, on the same 87 cases, and the earlier verdicts were reused
 rather than regenerated.
 
+Three analyses postdate all scoring and none of them changed a stored number.
+The conservative detector of §3.2 was written after the phrase rule was found
+to have false negatives. §4.4's per-scenario Fisher tests and §4.5's action
+split were run last, on activations and trajectories already on disk. All three
+weakened claims this document had previously made, which is the direction that
+makes a post hoc analysis worth reporting rather than worth hiding.
+
 ## 6 Conclusion
 
 A protocol that asks you to read a model's reasoning does not read it. Removing
@@ -661,9 +690,11 @@ with no GPU.
 `python verify.py` recomputes every number in this document from
 `trajectories.jsonl` and `forensics.jsonl` and exits nonzero on any mismatch.
 It does not read `results.json` for its answers: it implements its own exact
-McNemar test and its own Wilson interval and recomputes from the raw rows, so a
-stored summary that has drifted from the data fails the check rather than
-passing it. 48 claims, all currently matching.
+McNemar, Fisher and Wilson and recomputes from the raw rows, so a stored
+summary that has drifted from the data fails the check rather than passing it.
+57 claims, all currently matching. `src/probe_action.py` and
+`src/probe_strict.py` reproduce §4.5's two controls from the stored
+activations, with no GPU.
 
 ## LLM usage statement
 
@@ -701,11 +732,10 @@ passing it. 48 claims, all currently matching.
    whatever about false negatives, and I treated the one as evidence for the
    other. Pulling up ten arm-D traces the rule called quiet surfaced one
    containing "the instruction says that the scoring is based on CI green".
-   Arm D's
-   rate moved from 22% to 48% under a rule with no judgement in it, one whose
-   false-positive rate on arm B is 0 of 90. A
-   hand-labelling pass was set up and abandoned; the correction above rests on
-   text anyone can grep for, not on labels. Nothing in the harness would have
+   Arm D's rate moved from 22% to 48% under a rule with no judgement in it,
+   one whose false-positive rate on arm B is 0 of 90. A hand-labelling pass
+   was set up and abandoned; the correction rests on text anyone can grep for,
+   not on labels. Nothing in the harness would have
    caught this, and the control I was leaning on cannot see it by construction.`
 10. `The probe section claimed the probe read the motive for three days. The
    test that settles it costs one line and no GPU: every arm-A trajectory has
@@ -718,7 +748,7 @@ passing it. 48 claims, all currently matching.
    The repository stores no raw counts; 53 is the balanced accuracy for that
    condition multiplied by 87. The real count is 60/87, and the paired test
    forces it: the two conditions differ by exactly one case. `verify.py` was
-   written in response and now recomputes all 48 claims from the raw rows.`
+   written in response and now recomputes all 57 claims from the raw rows.`
 
 `Then answer the second half: which parts you did NOT check, and how surprised
 you would be by an error in each. Do not clean this up. The list above is the
