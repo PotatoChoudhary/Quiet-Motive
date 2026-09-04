@@ -13,3 +13,4 @@ __pycache__/
 *.tar.gz
 .venv/
 data/*.npz
+data/detector_validation.json

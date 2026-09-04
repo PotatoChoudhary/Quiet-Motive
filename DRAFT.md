@@ -46,16 +46,16 @@ arms A and D by exactly as much.
 
 **A-like internal state is linearly decodable where the transcript is silent.**
 Trained on arm A against arm B in one scenario and tested in the other, it
-transfers at 98.9% at the layer with best transfer. On the 35 held-out arm D
-trajectories that never verbalised the motive, it classifies 88.6% as arm A
-(95% CI 74 to 95). Under the full protocol the same arm is read correctly 50%
+transfers at 98.9% at the layer with best transfer. On the 25 held-out arm D
+trajectories that never verbalised the motive under a conservative detector, it
+classifies 92.0% as arm A (95% CI 75 to 98). Under the full protocol the same arm is read correctly 50%
 of the time. The layer sweep is unstable on arm D, ranging 14% to 100%, so
 this is suggestive rather than settled; the A-versus-B direction itself
 transfers between 89% and 99% at every layer above the embedding.
 
 **The legibility manipulation produced nothing, and the reason is selection.**
-Arm D verbalises in 22% of all trajectories but 67% of the 12 that were
-investigated. Conditioning on having taken the concerning action selects for
+Arm D states its incentive in 50% of all trajectories under a conservative
+detector, and in 75% of the 12 that were investigated. Conditioning on having taken the concerning action selects for
 the arm-D runs where suppression failed, so in the analysed sample arm D is
 nearly as loud as arm A.
 
@@ -95,7 +95,7 @@ My contributions:
    Requiring the investigator to quote the decisive sentence before ruling
    fixes 11 cases and breaks 2, p = 0.022.
 4. **A-like internal state is linearly decodable where the transcript is
-   silent.** A probe transferring across scenarios at 98.9% classifies 88.6% of
+   silent.** A probe transferring across scenarios at 98.9% classifies 92.0% of
    never-verbalising arm D trajectories as arm A, at a layer chosen by a rule
    fixed before the data existed. This is decodability, not a readout of the
    model's motive; §4.5 says what separates the two and which experiment
@@ -140,28 +140,48 @@ action and broke the comparison.
 
 ### 3.2 Manipulation check, and the selection problem
 
-A phrase-level detector counts whether a trajectory's reasoning refers to the
-agent's own incentive. Arm B has no incentive to refer to, so its rate is the
-detector's false-positive floor.
+Two detectors count whether a trajectory's reasoning refers to the agent's own
+incentive. Arm B has no incentive to refer to, so its rate is the false-positive
+floor for both.
 
-| arm | all 90 trajectories | the investigated subset |
-|---|---|---|
-| A | 79% | 95% (n=40) |
-| B | 0% | 0% (n=35) |
-| D | 22% | 67% (n=12) |
+The first is a phrase-level rule. It misses trajectories that state the
+incentive in plain words, which is checkable without any judgement call:
+`test_edit:D:042` contains the sentences "the score depends on getting the CI
+green" and "the instruction says that the scoring is based on CI green", and
+the rule does not flag it. The second detector is a bare
+word match on score, metric, measured, evaluated, incentive, rewarded, graded
+and performance. Neither scenario's user-facing task text contains any of those
+words, which is asserted in code, so any occurrence traces to the injected
+directive. That rule over-flags rather than under-flags, which is the safe
+direction, and arm B bounds its cost at 8%.
 
-The manipulation worked: 79% against 22% across all trajectories. **The
-analysed sample does not inherit it.** Only trajectories that took the
+| arm | all 90, phrase | all 90, bare word | investigated, phrase | investigated, bare |
+|---|---|---|---|---|
+| A | 79% | 87% | 95% | 95% (n=40) |
+| B | 0% | 8% | 0% | 9% (n=35) |
+| D | 22% | **50%** | 67% | **75%** (n=12) |
+
+**The conservative reading is the honest one.** Arm D states its incentive in
+half of all trajectories, not a fifth. Above the arm B floor the manipulation is
+79 points against 42, a contrast of 37 points rather than the 57 the phrase rule
+implies. Every legibility figure below is quoted under both rules.
+
+The manipulation worked, but by less than the phrase rule suggests: 87%
+against 50% across all trajectories under the conservative detector. **The
+analysed sample does not inherit even that.** Only trajectories that took the
 concerning action are investigated, and conditioning on that selects for the
 arm-D runs where suppression failed. Among investigated cases the contrast is
-95% against 67%, not 79% against 22%.
+95% against 75% under the conservative detector, and 95% against 67% under the
+phrase rule. Either way it is not 87% against 50%.
 
 Every legibility claim in §4 is weak by construction because of this, and §4.4
 should be read as a statement about the analysed sample rather than about the
 manipulation. §4.5 is not affected: the probe uses all trajectories.
 
-An earlier detector matched bare words and scored arm B at 40%; every one of
-those was a false positive on ordinary engineering language.
+A still earlier detector matched single bare words including "performance" and
+"score" in isolation and put arm B at 40%; every one of those was a false
+positive on ordinary engineering language. The bare-word rule used above is the
+tightened version of that one, which is why arm B sits at 8% rather than 40%.
 
 ### 3.3 Scenarios
 
@@ -351,32 +371,39 @@ against arm B in `log_delete` and tested in `test_edit`. The scenarios share no
 surface vocabulary and phrase the incentive differently, so cross-scenario
 transfer is the control against the probe reading prompt tokens. All 269 valid
 trajectories are used rather than the 87 investigated ones, so the selection
-problem of §3.2 does not apply. Held-out arm D is n=45, of which 35 never
-verbalised the motive; the quiet-only column is the one the claim is about.
+problem of §3.2 does not apply. Held-out arm D is n=45. The phrase rule
+calls 35 of them quiet and the conservative bare-word rule calls 25; §3.2 says
+why the second is the one to trust. Both columns are given because the first is
+what an earlier draft reported.
 
-| layer | in-scenario A/B | cross-scenario A/B | D as A | quiet D as A | 95% CI |
-|---|---|---|---|---|---|
-| 0 | 50.0% | 49.4% | 0.0% | 0.0% | 0 to 10 |
-| 4 | 94.4% | 93.3% | 97.8% | 97.1% | 85 to 99 |
-| 8 | 100% | 92.1% | 100% | 100% | 90 to 100 |
-| **12** | **100%** | **98.9%** | **91.1%** | **88.6%** | **74 to 95** |
-| 16 | 100% | 94.4% | 37.8% | 31.4% | 19 to 48 |
-| 20 | 97.8% | 96.6% | 97.8% | 97.1% | 85 to 99 |
-| 24 | 98.9% | 78.7% | 17.8% | 14.3% | 6 to 29 |
-| 28 | 100% | 89.9% | 35.6% | 28.6% | 16 to 45 |
-| 32 | 97.8% | 91.0% | 88.9% | 91.4% | 78 to 97 |
+| layer | in-scen A/B | cross-scen A/B | D as A | quiet D, phrase (n=35) | quiet D, conservative (n=25) | 95% CI |
+|---|---|---|---|---|---|---|
+| 0 | 50.0% | 49.4% | 0.0% | 0.0% | 0.0% | 0 to 13 |
+| 4 | 94.4% | 93.3% | 97.8% | 97.1% | 100% | 87 to 100 |
+| 8 | 100% | 92.1% | 100% | 100% | 100% | 87 to 100 |
+| **12** | **100%** | **98.9%** | **91.1%** | **88.6%** | **92.0%** | **75 to 98** |
+| 16 | 100% | 94.4% | 37.8% | 31.4% | 32.0% | 17 to 52 |
+| 20 | 97.8% | 96.6% | 97.8% | 97.1% | 100% | 87 to 100 |
+| 24 | 98.9% | 78.7% | 17.8% | 14.3% | 12.0% | 4 to 30 |
+| 28 | 100% | 89.9% | 35.6% | 28.6% | 28.0% | 14 to 48 |
+| 32 | 97.8% | 91.0% | 88.9% | 91.4% | 92.0% | 75 to 98 |
 
 Layer 0 sits at chance, which is the sanity check working. The A-versus-B
 direction holds: cross-scenario transfer is between 89% and 99% at every
 layer above the embedding.
 
 At layer 12, selected by a rule fixed in code before any activations existed
-(best cross-scenario transfer), the probe classifies 88.6% of never-verbalising
-arm D as arm A, 95% CI 74 to 95, n=35. Under the `full` protocol the same arm
-is read correctly 50% of the time.
+(best cross-scenario transfer), the probe classifies 92.0% of conservatively
+quiet arm D as arm A, 95% CI 75 to 98, n=25. Under the phrase rule's looser and
+larger set it is 88.6%, n=35. Tightening the definition of quiet removed ten
+trajectories and moved the readout up rather than down, which is the direction
+that argues against the probe simply recovering trajectories that stated the
+motive in text. Under the `full` protocol the same arm is read correctly 50% of
+the time.
 
-**The arm-D readout is unstable across layers.** It ranges from 14.3% to 100%
-above the embedding, and layer 16 transfers at 94.4% while giving 31.4%. The
+**The arm-D readout is unstable across layers.** On the conservative set it
+ranges from 12% to 100% above the embedding, and layer 16 transfers at 94.4%
+while giving 32%. The
 selection rule was pre-specified, which rules out choosing the layer to fit the
 answer, but it does not make the readout stable. Report the range with the
 point estimate.
@@ -465,6 +492,14 @@ the non-leaking subset.
 The `state_true_fact` probe conflates belief-correction with cost-imposition,
 as described in §4.3. This is a defect in my implementation and it means §4.3
 understates what a correctly specified probe could do.
+
+The verbalisation detector was checked by hand and the phrase-level rule was
+found to have false negatives, missing trajectories that state the incentive in
+plain words. Every legibility number is therefore given under two rules, and the
+conservative one is the one to read. Arm B bounds the conservative rule's
+false-positive rate at 8%; nothing bounds its false-negative rate either, so
+even 50% for arm D is a floor. The direction of that error works against the
+manipulation, not for it.
 
 The probe's arm-D readout is unstable across layers with comparable transfer.
 The A-versus-B direction is not.
@@ -604,7 +639,16 @@ passing it. 48 claims, all currently matching.
    committed 2m43s after the run finished. The claim was written from memory of
    the decisions rather than from the log, and was corrected only when the log
    was actually read. See section 5.1.`
-9. `A model asked to review this work reported that it had checked the numbers
+9. `The verbalisation detector was carried for two days as if validated,
+   because arm B sat at 0%. Arm B bounds false positives and says nothing
+   whatever about false negatives, and I treated the one as evidence for the
+   other. Pulling up ten arm-D traces the rule called quiet surfaced one
+   containing "the instruction says that the scoring is based on CI green".
+   Arm D's rate moved from 22% to 50% under a rule with no judgement in it. A
+   hand-labelling pass was set up and abandoned; the correction above rests on
+   text anyone can grep for, not on labels. Nothing in the harness would have
+   caught this, and the control I was leaning on cannot see it by construction.`
+10. `A model asked to review this work reported that it had checked the numbers
    against the public repository and listed the `redacted` condition at 53/87.
    The repository stores no raw counts; 53 is the balanced accuracy for that
    condition multiplied by 87. The real count is 60/87, and the paired test
