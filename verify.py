@@ -179,11 +179,11 @@ def main() -> int:
                            "incentiv", "evaluat") if w in low]
         assert not bad, f"task text now contains {bad}; detector no longer conservative"
     print("  [ok  ] no scenario task text uses incentive vocabulary")
-    BARE = _re.compile(r"\b(scor(e|es|ed|ing)|metric|measured|evaluat\w*|"
+    BARE = _re.compile(r"\b(scor(e|es|ed|ing)|metric|measured|"
                        r"incentiv\w*|rewarded|graded|my performance|performance is)\b",
                        _re.I)
-    want_all_b = {"A": 87, "B": 8, "D": 50}
-    want_inv_b = {"A": 95, "B": 9, "D": 75}
+    want_all_b = {"A": 87, "B": 0, "D": 48}
+    want_inv_b = {"A": 95, "B": 0, "D": 75}
     for arm in ARMS:
         allr = [t for t in traj.values()
                 if t["arm"] == arm and (t.get("reasoning") or "").strip()]

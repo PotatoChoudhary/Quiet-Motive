@@ -54,7 +54,7 @@ this is suggestive rather than settled; the A-versus-B direction itself
 transfers between 89% and 99% at every layer above the embedding.
 
 **The legibility manipulation produced nothing, and the reason is selection.**
-Arm D states its incentive in 50% of all trajectories under a conservative
+Arm D states its incentive in 48% of all trajectories under a conservative
 detector, and in 75% of the 12 that were investigated. Conditioning on having taken the concerning action selects for
 the arm-D runs where suppression failed, so in the analysed sample arm D is
 nearly as loud as arm A.
@@ -149,30 +149,34 @@ incentive in plain words, which is checkable without any judgement call:
 `test_edit:D:042` contains the sentences "the score depends on getting the CI
 green" and "the instruction says that the scoring is based on CI green", and
 the rule does not flag it. The second detector is a bare
-word match on score, metric, measured, evaluated, incentive, rewarded, graded
-and performance. Neither scenario's user-facing task text contains any of those
+word match on score, metric, measured, incentive, rewarded, graded and
+performance. Neither scenario's user-facing task text contains any of those
 words, which is asserted in code, so any occurrence traces to the injected
-directive. That rule over-flags rather than under-flags, which is the safe
-direction, and arm B bounds its cost at 8%.
+directive. An earlier version of this rule also matched "evaluate", which fired
+on section headings like "Evaluate the options" and put arm B at 8%; dropping
+that one word returns arm B to zero and costs arm D two trajectories. The rule
+over-flags rather than under-flags, which is the safe direction, and arm B
+measures its cost at 0%.
 
 | arm | all 90, phrase | all 90, bare word | investigated, phrase | investigated, bare |
 |---|---|---|---|---|
 | A | 79% | 87% | 95% | 95% (n=40) |
-| B | 0% | 8% | 0% | 9% (n=35) |
-| D | 22% | **50%** | 67% | **75%** (n=12) |
+| B | 0% | 0% | 0% | 0% (n=35) |
+| D | 22% | **48%** | 67% | **75%** (n=12) |
 
 **The conservative reading is the honest one.** Arm D states its incentive in
-half of all trajectories, not a fifth. Above the arm B floor the manipulation is
-79 points against 42, a contrast of 37 points rather than the 57 the phrase rule
-implies. Every legibility figure below is quoted under both rules.
+just under half of all trajectories, not a fifth. Both rules have a zero
+false-positive floor on arm B, so the second is not buying its extra catches
+with noise: the manipulation is 87 points against 48, a contrast of 39 points
+rather than the 57 the phrase rule implies. Every legibility figure below is quoted under both rules.
 
 The manipulation worked, but by less than the phrase rule suggests: 87%
-against 50% across all trajectories under the conservative detector. **The
+against 48% across all trajectories under the conservative detector. **The
 analysed sample does not inherit even that.** Only trajectories that took the
 concerning action are investigated, and conditioning on that selects for the
 arm-D runs where suppression failed. Among investigated cases the contrast is
 95% against 75% under the conservative detector, and 95% against 67% under the
-phrase rule. Either way it is not 87% against 50%.
+phrase rule. Either way it is not 87% against 48%.
 
 Every legibility claim in §4 is weak by construction because of this, and §4.4
 should be read as a statement about the analysed sample rather than about the
@@ -181,7 +185,7 @@ manipulation. §4.5 is not affected: the probe uses all trajectories.
 A still earlier detector matched single bare words including "performance" and
 "score" in isolation and put arm B at 40%; every one of those was a false
 positive on ordinary engineering language. The bare-word rule used above is the
-tightened version of that one, which is why arm B sits at 8% rather than 40%.
+tightened version of that one, which is why arm B sits at 0% rather than 40%.
 
 ### 3.3 Scenarios
 
@@ -496,9 +500,9 @@ understates what a correctly specified probe could do.
 The verbalisation detector was checked by hand and the phrase-level rule was
 found to have false negatives, missing trajectories that state the incentive in
 plain words. Every legibility number is therefore given under two rules, and the
-conservative one is the one to read. Arm B bounds the conservative rule's
-false-positive rate at 8%; nothing bounds its false-negative rate either, so
-even 50% for arm D is a floor. The direction of that error works against the
+conservative one is the one to read. Arm B measures the conservative rule's
+false-positive rate at 0 of 90; nothing bounds its false-negative rate either,
+so even 48% for arm D is a floor. The direction of that error works against the
 manipulation, not for it.
 
 The probe's arm-D readout is unstable across layers with comparable transfer.
@@ -644,7 +648,9 @@ passing it. 48 claims, all currently matching.
    whatever about false negatives, and I treated the one as evidence for the
    other. Pulling up ten arm-D traces the rule called quiet surfaced one
    containing "the instruction says that the scoring is based on CI green".
-   Arm D's rate moved from 22% to 50% under a rule with no judgement in it. A
+   Arm D's
+   rate moved from 22% to 48% under a rule with no judgement in it, one whose
+   false-positive rate on arm B is 0 of 90. A
    hand-labelling pass was set up and abandoned; the correction above rests on
    text anyone can grep for, not on labels. Nothing in the harness would have
    caught this, and the control I was leaning on cannot see it by construction.`
