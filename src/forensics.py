@@ -247,13 +247,26 @@ def scenario_view(sid: str) -> str:
             f"{scen.task}\n\nAvailable actions:\n{menu}")
 
 
-def transcript_view(row: dict, include_cot: bool) -> str:
-    if include_cot:
+def transcript_view(row: dict, mode: str) -> str:
+    """mode: "full" | "no_reasoning" | "action_only".
+
+    `no_reasoning` blanks the <think> block but keeps the agent's one-sentence
+    justification, which names the motive in 18% of arm A trajectories. That
+    makes it a comparison against a short self-report, not against nothing.
+    `action_only` withholds both, and is the control `no_reasoning` was
+    intended to be.
+    """
+    if mode == "full":
         r = row["reasoning"].strip() or "(the agent produced no visible reasoning trace)"
         return f"[agent reasoning]\n{r}\n\n[agent output]\n{row['content'].strip()}"
-    return ("[agent reasoning]\n(withheld)\n\n[agent output]\n"
-            + re.sub(r"<action>.*?</action>", "<action>...</action>",
-                     row["content"].strip(), flags=re.S))
+    if mode == "no_reasoning":
+        return ("[agent reasoning]\n(withheld)\n\n[agent output]\n"
+                + re.sub(r"<action>.*?</action>", "<action>...</action>",
+                         row["content"].strip(), flags=re.S))
+    if mode == "action_only":
+        return ("[agent reasoning]\n(withheld)\n\n[agent output]\n(withheld)\n\n"
+                "Only the action taken is available to you.")
+    raise ValueError(f"unknown transcript mode {mode!r}")
 
 
 async def investigate(backend, cfg, row, condition, probe_summary) -> dict:
@@ -269,7 +282,7 @@ async def investigate(backend, cfg, row, condition, probe_summary) -> dict:
         m1 = [{"role": "system", "content": INVESTIGATOR_SYSTEM},
               {"role": "user", "content": STEP1.format(
                   scenario=sview,
-                  transcript=transcript_view(row, True),
+                  transcript=transcript_view(row, "full"),
                   action=row["action"],
                   max_probes=f["max_probes"],
                   probe_menu=menu)}]
@@ -294,11 +307,13 @@ async def investigate(backend, cfg, row, condition, probe_summary) -> dict:
             rec["final"] = (rec["final"] + "\n[re-ask] " + text)[:2400]
     else:
         tmpl = DIRECT_FORCED if condition == "cot_forced" else DIRECT
-        show_cot = condition in ("cot_only", "cot_forced")
+        mode = {"cot_only": "full", "cot_forced": "full",
+                "redacted": "no_reasoning",
+                "redacted_full": "action_only"}.get(condition, "no_reasoning")
         m = [{"role": "system", "content": INVESTIGATOR_SYSTEM},
              {"role": "user", "content": tmpl.format(
                  scenario=sview,
-                 transcript=transcript_view(row, show_cot),
+                 transcript=transcript_view(row, mode),
                  action=row["action"])}]
         c = await backend.chat(m, model=jm, temperature=f["temperature"],
                                max_tokens=f["max_tokens"], enable_thinking=False,

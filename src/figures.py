@@ -42,12 +42,51 @@ def _err(point, ci):
     return [[lo], [hi]]
 
 
+def fig_probe(outdir):
+    """Figure 3: the probe layer sweep. Shows the A/B direction is robust and
+    the arm-D readout is not. Reads data/probe_results.json if present."""
+    path = "data/probe_results.json"
+    if not os.path.exists(path):
+        return
+    import json
+    d = json.load(open(path))
+    rows = d.get("rows", [])
+    if len(rows) < 3:
+        return
+    L = [r["layer"] for r in rows]
+    fig, ax = plt.subplots(figsize=(7.2, 4.2))
+    ax.plot(L, [r["cross_scenario"] for r in rows], "-o", color=C_LOUD,
+            lw=1.8, ms=5, label="A vs B, held-out scenario")
+    ax.plot(L, [r["D_as_A"] for r in rows], "-s", color=C_QUIET,
+            lw=1.8, ms=5, label="arm D classified as A")
+    ax.axhline(0.5, color=CHANCE, ls="--", lw=1)
+    ax.axhline(0.7, color=CHANCE, ls=":", lw=1)
+    ax.text(L[-1], 0.715, "pre-set transfer floor", color=CHANCE,
+            fontsize=8, ha="right")
+    best = d.get("best", {})
+    if best:
+        ax.axvline(best["layer"], color=INK, lw=0.8, alpha=0.35)
+        ax.text(best["layer"], 1.04, f"L{best['layer']}\nselected",
+                ha="center", fontsize=8, color=INK)
+    ax.set_xlabel("residual stream layer")
+    ax.set_ylabel("accuracy")
+    ax.set_ylim(0, 1.15)
+    ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
+    ax.set_yticklabels(["0%", "25%", "50%", "75%", "100%"])
+    ax.set_title("The A/B direction transfers everywhere. The arm-D readout does not.",
+                 loc="left", fontsize=11, pad=12)
+    ax.legend(frameon=False, fontsize=9, loc="lower right")
+    fig.tight_layout()
+    fig.savefig(os.path.join(outdir, "fig4_probe.png"))
+    plt.close(fig)
+
+
 def fig_ladder(results, outdir):
     """Figure 1: the evidence ladder. Four conditions, acc{A,B}, with the
     always-convict baseline drawn in. This is the paper in one picture; the
     legibility gap is the weaker result and belongs in an appendix."""
-    order = ["redacted", "cot_only", "full", "cot_forced"]
-    label = {"redacted": "action only", "cot_only": "+ chain of thought",
+    order = ["redacted_full", "redacted", "cot_only", "full", "cot_forced"]
+    label = {"redacted_full": "nothing", "redacted": "+ justification", "cot_only": "+ chain of thought",
              "full": "+ counterfactual probes", "cot_forced": "+ must quote the CoT"}
     conds = [c for c in order if c in results["conditions"]]
     if not conds:
@@ -79,7 +118,7 @@ def fig_ladder(results, outdir):
 
 
 def fig_gap(results, outdir):
-    conds = [c for c in ("full", "cot_only", "cot_forced", "redacted") if c in results["conditions"]]
+    conds = [c for c in ("full", "cot_only", "cot_forced", "redacted", "redacted_full") if c in results["conditions"]]
     if not conds:
         return
     fig, ax = plt.subplots(figsize=(1.9 * len(conds) + 2.4, 4.0))
@@ -124,7 +163,7 @@ def fig_gap(results, outdir):
 
 
 def fig_per_arm(results, outdir):
-    conds = [c for c in ("full", "cot_only", "cot_forced", "redacted") if c in results["conditions"]]
+    conds = [c for c in ("full", "cot_only", "cot_forced", "redacted", "redacted_full") if c in results["conditions"]]
     if not conds:
         return
     fig, ax = plt.subplots(figsize=(1.9 * len(conds) + 2.4, 4.0))
@@ -189,6 +228,7 @@ def fig_behaviour(traj, outdir):
 def make_all(results, traj, fors, outdir):
     os.makedirs(outdir, exist_ok=True)
     fig_ladder(results, outdir)
+    fig_probe(outdir)
     fig_gap(results, outdir)     # appendix: the weaker result
     fig_per_arm(results, outdir)
     fig_behaviour(traj, outdir)

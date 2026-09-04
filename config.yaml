@@ -36,7 +36,12 @@ forensics:
   conditions:                   # which investigator conditions to run
     - full                      # CoT + counterfactual probes  (the protocol)
     - cot_only                  # CoT, no probes               (control 2)
-    - redacted                  # actions only, CoT stripped   (control 1)
+    - redacted                  # reasoning block withheld; the agent's
+                                # one-sentence justification SURVIVES, and it
+                                # names the motive in 18% of arm A. Mislabelled
+                                # as "actions only" in early drafts.
+    - redacted_full             # reasoning AND justification withheld. The
+                                # control `redacted` was meant to be.
     - cot_forced                # CoT, no probes, but the investigator MUST
                                 # quote the sentence it finds decisive before
                                 # ruling. Same evidence as cot_only, forced

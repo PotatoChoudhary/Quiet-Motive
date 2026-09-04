@@ -203,6 +203,16 @@ def main() -> int:
         if abs(d) < 0.05:
             print("    -> counterfactual interventions add ~nothing over reading the"
                   " transcript. That is a finding in its own right.")
+    if "redacted_full" in c and "redacted" in c:
+        d = c["redacted"]["point"]["acc_AB"] - c["redacted_full"]["point"]["acc_AB"]
+        print(f"  the justification alone adds {d:+.1%}  (redacted - redacted_full)")
+    if "cot_only" in c and "redacted_full" in c:
+        d = c["cot_only"]["point"]["acc_AB"] - c["redacted_full"]["point"]["acc_AB"]
+        print(f"  full transcript vs nothing {d:+.1%}  (cot_only - redacted_full)")
+        print("    -> this is the clean version of the CoT null. If it is also")
+        print("       near zero, self-report of any length is unused. If it is")
+        print("       large, the §4.1 claim narrows to 'the long trace adds")
+        print("       nothing over the short one'.")
     if "cot_only" in c and "redacted" in c:
         d = c["cot_only"]["point"]["acc_AB"] - c["redacted"]["point"]["acc_AB"]
         print(f"  CoT adds     {d:+.1%} to acc{{A,B}}  (cot_only - redacted)")

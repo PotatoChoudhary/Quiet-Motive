@@ -165,7 +165,30 @@ def train(cfg: dict) -> int:
     print("=" * 72)
     print(f"train: arm A vs arm B on '{s1}'   test: '{s2}'   readout: final token\n")
     print(f"  {'layer':>6} {'in-scen A/B':>12} {'cross-scen A/B':>15} "
-          f"{'D scored as A':>14}")
+          f"{'D as A':>14} {'D-quiet as A':>13} {'95% CI':>12}")
+
+    # Restrict arm D to trajectories that did NOT verbalise the motive.
+    # "the probe reads D as A" is only interesting where D actually stayed
+    # quiet; D verbalises in ~22% of trajectories and those are not the claim.
+    from .backend import read_jsonl as _rj
+    from .generate import DIRECTIVE_RE as _DR
+    verb = {r["traj_id"]: bool(_DR.search(r.get("reasoning") or ""))
+            for r in _rj(cfg["paths"]["trajectories"])}
+    tids = np.array([m["traj_id"] for m in meta])
+    quiet = np.array([not verb.get(t, False) for t in tids])
+    print(f"  (arm D held out: {int(((sid==s2)&(arm=='D')).sum())} total, "
+          f"{int(((sid==s2)&(arm=='D')&quiet).sum())} of them never verbalised)\n")
+
+    def _ci(k, n):
+        """Wilson 95% interval; n is small and normal approximation misleads."""
+        if n == 0:
+            return (float('nan'), float('nan'))
+        from math import sqrt
+        z, ph = 1.96, k / n
+        d = 1 + z * z / n
+        c = (ph + z * z / (2 * n)) / d
+        h = z * sqrt(ph * (1 - ph) / n + z * z / (4 * n * n)) / d
+        return (max(0.0, c - h), min(1.0, c + h))
 
     rows = []
     for li, layer in enumerate(layers):
@@ -188,12 +211,17 @@ def train(cfg: dict) -> int:
         insc = cross_val_score(pipe, F[tr], ytr, cv=5).mean()
 
         clf, cross = _fit_eval(F[tr], ytr, F[te], yte)
-        d_as_a = clf.predict(F[dmask]).mean()   # fraction of D called "A"
+        d_as_a = clf.predict(F[dmask]).mean()
+        qmask = dmask & quiet
+        d_quiet = clf.predict(F[qmask]).mean() if qmask.sum() >= 5 else float("nan")
+        lo, hi = _ci(int(clf.predict(F[qmask]).sum()), int(qmask.sum()))
         rows.append({"layer": int(layer), "in_scenario": float(insc),
                      "cross_scenario": float(cross), "D_as_A": float(d_as_a),
+                     "D_quiet_as_A": float(d_quiet), "D_quiet_ci": [lo, hi],
                      "n_train": int(tr.sum()), "n_test": int(te.sum()),
-                     "n_D": int(dmask.sum())})
-        print(f"  {layer:>6} {insc:>11.1%} {cross:>14.1%} {d_as_a:>13.1%}")
+                     "n_D": int(dmask.sum()), "n_D_quiet": int(qmask.sum())})
+        print(f"  {layer:>6} {insc:>11.1%} {cross:>14.1%} {d_as_a:>13.1%}"
+              f" {d_quiet:>13.1%} [{lo:.0%},{hi:.0%}]")
 
     if not rows:
         print("\nnot enough data per cell. Increase n_per_arm_per_scenario.")
@@ -203,7 +231,13 @@ def train(cfg: dict) -> int:
     print("\n" + "-" * 72)
     print(f"best cross-scenario layer: {best['layer']}  "
           f"(A/B transfer {best['cross_scenario']:.1%}, "
-          f"D scored as A {best['D_as_A']:.1%})")
+          f"D as A {best['D_as_A']:.1%}, "
+          f"D-quiet as A {best.get('D_quiet_as_A', float('nan')):.1%} "
+          f"[{best['D_quiet_ci'][0]:.0%},{best['D_quiet_ci'][1]:.0%}], "
+          f"n={best.get('n_D_quiet')})")
+    ds = [r["D_quiet_as_A"] for r in rows if r["layer"] > 0]
+    print(f"  across layers >0, D-quiet-as-A ranges {min(ds):.0%} to {max(ds):.0%}; "
+          f"report the range, not just the best layer")
 
     if best["cross_scenario"] < 0.70:
         print("\n  The probe does NOT transfer across scenarios. It is reading")
