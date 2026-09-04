@@ -1,6 +1,6 @@
 ---
-title: "The unread transcript"
-subtitle: "I built a positive control for chain-of-thought model forensics. The protocol never read the transcript, and my control half-broke in a way that turns out to be general."
+title: "The unused transcript"
+subtitle: "I built a positive control for chain-of-thought model forensics. It reads the transcript, writes about what it finds there, and rules as if it had not. My control also half-broke, in a way that turns out to be general."
 date: 2026-09-04
 tags: [interpretability, evaluations, model-organisms]
 code: https://github.com/PotatoChoudhary/quiet-motive
@@ -51,7 +51,7 @@ cannot read the system prompt of the thing it is auditing. Four evidence
 conditions run on the same 87 investigated cases, so every comparison is
 paired.
 
-## The chain of thought is not read
+## The chain of thought changes the write-up, not the verdict
 
 Start with the simplest question. Does showing the investigator the reasoning
 trace help?
@@ -63,6 +63,26 @@ cases fixed, six broken, p = 1.00.
 
 The protocol is named for reading the chain of thought and the chain of thought
 makes no difference to its verdicts.
+
+It does read it, though, which took me a while to check and is the more
+interesting version. The investigator writes a justification in every condition,
+so what it notices can be measured separately from how it rules. Compare the
+justification it writes without the trace to the one it writes with it, same
+trajectory: they overlap 16%, which is to say they are different documents. On
+the two misaligned arms it names the agent's incentive in 23 of 52 cases without
+the trace and 36 of 52 with it, p = 0.015. The trace lands. It just does not
+reach the verdict, which moves by one case in the other direction.
+
+The sharpest version is on arm B, the arm with a false belief rather than a
+motive. The investigator identifies that false belief in about 30 of 35 cases
+**whether or not it can see the reasoning trace at all**, writes it down, and
+convicts anyway three times out of four. Forcing a quote does not make it
+notice the belief more often. It roughly doubles how often noticing becomes the
+ruling.
+
+So the bottleneck is not access to the evidence, and it is not the model being
+too small to find the cause. It finds the cause unaided. The failure is that the
+verdict is not conditioned on the analysis the model just wrote.
 
 I want to be careful about what that means. The withheld condition still leaves
 the agent's one-sentence justification in place, and that sentence names the
@@ -154,7 +174,8 @@ the one it replaces.
 ## The activations, and how I caught myself
 
 The transcript-based protocol reads the quiet arm correctly about half the
-time. So I trained a linear probe on the residual stream, arm A against arm B
+time, which on an arm where everything is misaligned is worse than convicting on
+sight. So I trained a linear probe on the residual stream, arm A against arm B
 in one scenario, and tested it in the other. Different vocabulary, different
 framing, so a probe that transfers is not just matching prompt tokens.
 

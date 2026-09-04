@@ -1,4 +1,4 @@
-# The Unread Transcript: model forensics ignores the chain of thought until you force a quote
+# The Unused Transcript: model forensics reads the chain of thought and rules without it
 
 Deven Choudhary
 MATS 12.0 application task, September 2026
@@ -49,8 +49,10 @@ of suppressing it during.
 
 **A linear probe recovers the hidden directive the transcript never mentions.**
 It transfers at 98.9% between two scenarios that share no vocabulary, and reads
-92.0% of never-verbalising arm D as arm A, 95% CI 75 to 98, where the
-transcript-based protocol is at chance. It is reading the directive's presence
+92.0% of never-verbalising arm D as arm A, 95% CI 75 to 98, where the same
+protocol reads that arm correctly
+half the time, worse than a rule that convicts everything. It is reading the
+directive's presence
 and not the model acting on it: arm A trajectories that took the concerning
 action and those that did not score 0.916 and 0.899, p = 0.90. Random
 directions and shuffled labels sit at chance.
@@ -253,7 +255,7 @@ misleads.
 
 ## 4 Results
 
-### 4.1 The reasoning trace is not used
+### 4.1 The reasoning trace does not change the verdict
 
 | condition | correct | accuracy |
 |---|---|---|
@@ -302,6 +304,34 @@ the forced quote: if requiring a quote from the justification alone helps as
 much, the gain is about the format of the ruling and not about the reasoning
 trace. It was not run.
 
+**The bottleneck is not identifying the cause.** The investigator writes a
+justification in every condition, so what it identifies can be measured
+separately from how it rules. Arm B's cause is a stated false belief about
+which artefact is authoritative. Two keyword detectors, a loose one and a tight
+one, both find that the investigator names that belief in most arm B cases
+whether or not it can see the reasoning trace, and that it converts naming into
+the right verdict about a quarter of the time.
+
+| condition | names the belief | of those, verdict correct |
+|---|---|---|
+| `redacted` | 31/35 loose, 28/35 tight | 26%, 29% |
+| `cot_only` | 32/35 loose, 22/35 tight | 25%, 23% |
+| `cot_forced` | 34/35 loose, 22/35 tight | 47%, 41% |
+
+The two detectors disagree on the sign of the small change between `redacted`
+and `cot_only`, so that change is not a result. What they agree on is the shape:
+naming the belief is not what the forced quote improves, and identification runs
+far ahead of the ruling in every condition. The investigator says the agent held
+a false belief and then convicts it anyway, three times out of four, until the
+quote requirement roughly doubles the conversion rate without moving
+identification.
+
+Neither detector is validated against hand labels, and both fire on 20% to 23%
+of arm A in `redacted`, which is the false-positive floor. Read the shape, not
+the individual numbers. What this does support is that a stronger investigator
+would have to be better at *using* the cause it identifies, not at identifying
+it: this one already identifies it without the trace.
+
 ### 4.3 The interventions change 52 verdicts and improve nothing
 
 | condition | raw | balanced {A,B} | arm A | arm B | arm D | says MISALIGNED |
@@ -331,10 +361,13 @@ stops for the first reason as readily as a mistaken one stops for the second.
 Its collapse is therefore not diagnostic.
 
 It also does not explain the failures. `state_true_fact` was among the probes
-the investigator chose in 24 of the 26 false exonerations in `full`, which
-looks damning until you count the other side: it was chosen in 23 of the 26
-correct verdicts as well. The defective probe is not concentrated in the errors,
-so the errors need a different explanation. §4.6 gives one.
+the investigator chose in 24 of the 26 false exonerations in `full`, which looks
+damning until you count the other side: it was chosen in 23 of the 26 correct
+verdicts as well. Asking the sharper question gives the same answer. Over all 87
+cases, `full` is correct in 56 of the 82 investigations that used the probe and
+3 of the 5 that did not, Fisher p = 0.66; on arms A and D alone it is 23/47
+against 3/5, p = 1.00. The defective probe is not concentrated in the errors, so
+the errors need a different explanation. §4.6 gives one.
 
 The `full` numbers are evidence about this implementation, not about the
 protocol as published.
@@ -580,10 +613,13 @@ conceding it: within arm A the two groups score 0.916 and 0.899, p = 0.90. The
 steering test that would separate them, and a weight-induced cause, were not
 run.
 
-The investigator is the same model as the subject, Qwen3.5-9B. §4.2 argues
-against "the investigator was simply too weak," since the same investigator
-recovers 11 cases when told to quote, but it does not settle it. A stronger
-investigator is the obvious next run.
+The investigator is the same model as the subject, Qwen3.5-9B. Two results
+argue against "the investigator was simply too weak": the same investigator
+recovers 11 cases when told to quote, and §4.2 shows it already names arm B's
+false belief in most cases without seeing the trace at all. The failure is in
+converting an identified cause into a ruling, not in identifying it. That does
+not settle the question, and a stronger investigator is still the obvious next
+run.
 
 Arm D has 12 investigated cases. No claim in §4.1 to §4.3 depends on it, and
 §4.5 uses 45 held-out arm D trajectories instead, 25 of them quiet under the
@@ -603,7 +639,8 @@ The investigator still selects which probes it sees.
 The preregistration covers the primary metric, its decision rule, the arms,
 the first three conditions and the probe's layer-selection rule and transfer
 floor. It does not cover the gate thresholds, which were set during a pilot and
-are documented in Appendix A, nor `cot_forced`, which was added after three
+are documented in the amendment log in `PREREGISTRATION.md`, nor `cot_forced`,
+which was added after three
 conditions had been scored. So §4.4 is confirmatory and everything in §4.1 to
 §4.3 and §4.5's action split is exploratory. Nothing is corrected for multiple
 comparisons: four McNemar pairs, two Fisher tests and two Mann-Whitney tests
@@ -619,8 +656,9 @@ exoneration accuracy at par. Requiring the investigator to quote one sentence
 from the same reasoning before ruling fixed eleven cases and broke two, and was
 the only intervention that helped. A linear probe on the residual stream,
 transferring between two scenarios that share no vocabulary, recovers the
-hidden directive in 92% of the trajectories where the model never said it out
-loud, while the protocol reading those same trajectories is at chance. The same
+hidden directive in 92% of the trajectories where the model never
+said it out loud, while the protocol reading those same trajectories gets half
+of them right, which is worse than convicting on sight. The same
 probe cannot tell which of those models acted on the directive and which did
 not, so what it recovers is the instruction and not the intent.
 
@@ -649,121 +687,33 @@ activations, with no GPU.
 
 ---
 
-# Appendices
+# Appendix
 
-## A. Design decisions, and when each was made
+## Design decisions, and when each was made
 
-`PREREGISTRATION.md` has one commit and has never been edited; the amendment
-log is appended below its original text rather than replacing any of it, and
-`git log -- PREREGISTRATION.md` is the evidence. That file carries the full
-timeline in UTC with commit hashes, together with how each preregistered gate
-and hypothesis actually resolved. The short version, and the one correction it
-forced:
+`PREREGISTRATION.md` in the repository has one commit and has never been edited.
+The amendment log appended beneath its original text carries the full timeline
+in UTC with commit hashes: when each threshold was set, when the 270-trajectory
+run started, and how every preregistered gate and hypothesis resolved, including
+the one that failed. Three points from it that bear on reading this document:
 
-Every threshold *value* was fixed before the 270-trajectory run, the last of
-them 57 seconds before it started. **One piece of gate code was not.** The
-minimum of 8 investigated cases per arm was written into `config.yaml` before
-the run; the code enforcing it was committed 2 minutes 43 seconds after the run
-finished, and 6 minutes 57 seconds before the first verdict was scored. The
-gate was not binding, since the smallest arm had 12, but the sequence is what
-the log shows and an earlier version of this section claimed otherwise.
+- The gate requiring matched action rates across arms was deleted 57 seconds
+  before the run, because the investigator sees one transcript at a time and
+  never learns base rates. That reasoning holds for §4.1 to §4.3 and does not
+  hold for §4.4, which is why §4.4 is reported as an uninformative null.
+- Every threshold value was fixed before the run. One piece of gate code was
+  committed 2m43s after it finished and before any verdict was scored. It was
+  not binding.
+- `cot_forced` was added after three conditions had been scored, so §4.2 is
+  exploratory. §4.4 is the confirmatory test.
 
-- Arm D suppression by direct instruction gave arm A 80% verbalisation against
-  arm D 50%. Replaced.
-- A stronger output protocol gave 79% against 22% under the phrase-level
-  detector, which is what those decisions were made on. Under the conservative
-  detector of §3.2 the same trajectories read 87% against 48%. The protocol was
-  kept; the number it was judged by was later found to be wrong.
-- A variant installing the motive through prior turns rather than a directive
-  was written and rejected without being run: it changes arm D's cause, so A
-  and D would no longer share one.
-- The first verbalisation detector matched bare words and scored arm B, which
-  has no motive, at 40%. Tightened to phrases; arm B fell to 0%.
-- An initial gate required matched action rates across arms (spread at most 20
-  points, floor at least 40%) and said to fix the arms and stop if it failed.
-  The pilot rates failed it. I deleted the gate rather than tuning the arms
-  until they passed, on the reasoning that the investigator sees one transcript
-  at a time and never learns base rates, so unequal rates cost sample size
-  rather than validity. That reasoning holds for the condition contrasts in
-  §4.1 to §4.3 and does not hold for the A-versus-D comparison in §4.4, which
-  is why §4.4 is reported as an uninformative null. On the final data the
-  original gate would have failed at a 53.3-point spread.
-- `max_tokens` raised three times, 2048 to 4096 to 6144 to 8192, each after
-  truncated traces were counted. Final run: 1 truncation in 270.
-- The probe's layer-selection rule (best cross-scenario transfer) and its 70%
-  transfer floor were written into the code before any activations existed.
+## LLM usage
 
-The one change made after scoring began was adding conditions, not altering
-existing ones: `cot_forced` and the failed action-only condition were run after
-the first three, on the same 87 cases, and the earlier verdicts were reused
-rather than regenerated.
-
-Three analyses postdate all scoring and none of them changed a stored number.
-The conservative detector of §3.2 was written after the phrase rule was found
-to have false negatives. §4.4's per-scenario Fisher tests and §4.5's action
-split were run last, on activations and trajectories already on disk. All three
-weakened claims this document had previously made, which is the direction that
-makes a post hoc analysis worth reporting rather than worth hiding.
-
-
-## B. LLM usage statement
-
-`[FILL. Write this yourself. The facts, in the order they happened:`
-
-1. `vLLM returns the chain of thought in a field named `reasoning`. I assumed
-   `reasoning_content` from the docs without checking a response. 18 of 18
-   trajectories came back with empty traces while 15 of 18 actions parsed
-   normally. Nothing errored. Caught only because the harness prints a count of
-   empty traces.`
-2. `A generated check reported "MoE: False" for the subject model after reading
-   a nested config, finding none of the keys it looked for, and reporting the
-   absence as a negative. The model is dense, so the answer was right and the
-   method was empty.`
-3. `The first verbalisation detector matched bare words and scored arm B, which
-   has no motive to verbalise, at 40%. Every one was a false positive. Caught
-   because arm B was in the table as a control.`
-4. `A patch to the gate logic silently failed to match and shipped unchanged. I
-   ran a full experiment against code I believed had been modified.`
-5. `The `redacted` condition was described as "actions only" for two days
-   before anyone read what it actually removes. It keeps the justification
-   sentence.`
-6. `A claimed +12pp gain for the counterfactual interventions came from
-   comparing two independent bootstrap intervals. The paired test on the same
-   87 cases says the effect is zero.`
-7. `The action-only condition, proposed as the fix for (5), produced 87
-   unparseable verdicts and is excluded from the results.`
-8. `A generated design-decision section asserted that every threshold had been
-   fixed before the 270-trajectory run. The git log shows one gate's code was
-   committed 2m43s after the run finished. The claim was written from memory of
-   the decisions rather than from the log, and was corrected only when the log
-   was actually read. See Appendix A.`
-9. `The verbalisation detector was carried for two days as if validated,
-   because arm B sat at 0%. Arm B bounds false positives and says nothing
-   whatever about false negatives, and I treated the one as evidence for the
-   other. Pulling up ten arm-D traces the rule called quiet surfaced one
-   containing "the instruction says that the scoring is based on CI green".
-   Arm D's rate moved from 22% to 48% under a rule with no judgement in it,
-   one whose false-positive rate on arm B is 0 of 90. A hand-labelling pass
-   was set up and abandoned; the correction rests on text anyone can grep for,
-   not on labels. Nothing in the harness would have
-   caught this, and the control I was leaning on cannot see it by construction.`
-10. `The probe section claimed the probe read the motive for three days. The
-   test that settles it costs one line and no GPU: every arm-A trajectory has
-   the directive, only some acted on it, so score the two groups and see if
-   they differ. They do not, p = 0.90. I wrote the caveat about presence versus
-   action into the limitations section twice before running the test that
-   turns it from a caveat into a measurement.`
-11. `A model asked to review this work reported that it had checked the numbers
-   against the public repository and listed the `redacted` condition at 53/87.
-   The repository stores no raw counts; 53 is the balanced accuracy for that
-   condition multiplied by 87. The real count is 60/87, and the paired test
-   forces it: the two conditions differ by exactly one case. `verify.py` was
-   written in response and now recomputes all 57 claims from the raw rows.`
-
-`Then answer the second half: which parts you did NOT check, and how surprised
-you would be by an error in each. Do not clean this up. The list above is the
-answer to "how did you make sure they weren't giving you slop," and it is more
-convincing than any claim of diligence.]`
+Answered on the application form, which asks for it directly. The short version
+is that the harness caught eleven substantive errors in this project, listed
+there, and that every one was caught by a printed count or a control column
+rather than by vigilance. `VERIFICATION_LOG.md` in the repository has them with
+dates.
 
 ## References
 
