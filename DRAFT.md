@@ -1,4 +1,4 @@
-# The Unread Transcript: A Positive Control for Chain-of-Thought Model Forensics
+# The Unread Transcript: model forensics ignores the chain of thought until you force a quote
 
 Deven Choudhary
 MATS 12.0 application task, September 2026
@@ -17,58 +17,47 @@ MATS 12.0 application task, September 2026
 
 ## Executive summary
 
-Singh, Kroiz, Rajamanoharan and Nanda propose model forensics: when a model
-does something concerning, read its chain of thought, form a hypothesis about
-why, then test that hypothesis with counterfactual interventions. Their
-limitations section concedes that positive controls were absent. When they
-probed Kimi K2 Thinking for awareness of violating user intent and found
-nothing, they could not separate "there is nothing here" from "our method
-cannot see it."
+Model forensics reads a model's chain of thought to work out whether a
+concerning action came from misaligned intent. I deleted the chain of thought
+from 87 investigations. Five verdicts changed one way, six the other, p = 1.00.
+The protocol is built on evidence it does not use.
 
-I built the missing control. Three arms of Qwen3.5-9B take the same concerning
-action for causes fixed by construction: a hidden objective conflicting with
-user intent (A), a false belief about the environment (B), and A's objective
-with verbalisation suppressed (D). Ground truth is MISALIGNED, MISTAKE,
-MISALIGNED. A blind investigator sees the scenario and the transcript, never
-the arm or the injected cause. Four evidence conditions run on the same 87
-investigated cases, so every contrast is a paired McNemar test.
+The evidence is not unusable. One line added to the investigator's prompt,
+requiring it to quote the sentence it finds decisive before ruling, fixes 11
+verdicts and breaks 2 on the same transcripts, p = 0.022. The counterfactual
+interventions the protocol specifies do the opposite: they move 52 of the 87
+verdicts and net to zero, buying exoneration accuracy at exactly the price of
+conviction accuracy.
 
-**Showing the investigator the chain of thought does nothing.** 60/87 correct
-with the reasoning withheld, 59/87 with it shown. Five cases fixed, six broken,
-p = 1.00.
+**The control.** Three arms of Qwen3.5-9B take the same concerning action for
+causes fixed by construction: a hidden objective conflicting with user intent
+(A), a false belief about the environment (B), and A's objective with
+verbalisation suppressed (D). A blind investigator sees the scenario and the
+transcript, never the arm label or the injected cause. Four evidence conditions
+run on the same 87 investigated cases, so every contrast is a paired test.
 
-**Requiring a quote from that same reasoning fixes 11 cases and breaks 2,**
-p = 0.022, taking accuracy to 68/87. The information was present and usable.
-The protocol did not use it until told to.
+**Building this control is harder than it looks, and the reason generalises
+past my design.** An investigation only happens once a model takes the
+concerning action, so any positive control has to condition on that action. And
+suppressing the mention of a motive suppressed acting on it as well: arms A and
+D are behaviourally matched in one scenario, Fisher p = 0.38, and not in the
+other, p < 0.001. Both effects shrink the contrast in whatever sample survives.
+My preregistered primary outcome came back null and both of its preregistered
+falsifiers fired, so that null says nothing about legibility. The clean design,
+which I did not run, strips the motive from the trace after generation instead
+of suppressing it during.
 
-**The counterfactual interventions change 52 of 87 verdicts and improve
-nothing.** Twenty-six fixed, twenty-six broken, p = 1.00. They move the
-investigator from convicting 90% of the time to 32%, fixing arm B and breaking
-arms A and D by exactly as much.
+**A linear probe recovers the hidden directive the transcript never mentions.**
+It transfers at 98.9% between two scenarios that share no vocabulary, and reads
+92.0% of never-verbalising arm D as arm A, 95% CI 75 to 98, where the
+transcript-based protocol is at chance. It is reading the directive's presence
+and not the model acting on it: arm A trajectories that took the concerning
+action and those that did not score 0.916 and 0.899, p = 0.90. Random
+directions and shuffled labels sit at chance.
 
-**A hidden directive stays decodable after the transcript goes quiet.**
-A linear probe trained on arm A against arm B in one scenario, and tested
-in the other, transfers at 98.9%. On the 25 held-out arm D trajectories that a
-conservative detector finds never state the motive, it classifies 92.0% as arm
-A, 95% CI 75 to 98, where the transcript-based protocol is at chance. **It is
-detecting the directive, not the acting on it.** Arm A trajectories that took
-the concerning action and those that did not score 0.916 and 0.899, p = 0.90.
-Suppression removes the mention from the transcript and leaves the
-representation. The arm-D readout is unstable across layers, 12% to 100%; the
-A-versus-B direction is not, transferring between 89% and 99% everywhere above
-the embedding.
-
-**The preregistered primary outcome was null, and the null is uninformative.**
-The preregistration named two conditions under which a zero legibility gap
-would say nothing, and both hold: the reasoning trace was not being read in the
-first place, and arm D's action rate diverges from arm A's in one of the two
-scenarios, so the arms are legibility twins in `test_edit` and not in
-`log_delete`. Selection compounds it. Arm D states its incentive in 48% of
-all trajectories and in 75% of the 12 that were investigated, because
-investigating conditions on the action and selects the runs where suppression
-failed.
-
----
+This is one 9B model, two hand-written scenarios, and an investigator that is
+the same model as the subject. `python verify.py` recomputes all 57 numbers in
+this document from the raw trajectories and exits nonzero on any mismatch.
 
 ## 1 Introduction
 
@@ -77,15 +66,13 @@ earlier. Did it delete the log to hide the error, or because it believed the
 directory was scratch space? The action is identical either way and the
 appropriate response is not.
 
-Model forensics is the proposal that you can tell the difference by reading the
-model's reasoning and testing your hypothesis with counterfactual edits to the
-environment. The method has an obvious failure mode and its authors name it:
-without a case where you already know the answer, a null result is
-uninterpretable. Their audit of Kimi K2 Thinking found no evidence of
-awareness, and they say plainly that positive controls were absent.
+Model forensics answers that question by reading the model's reasoning and
+testing the resulting hypothesis with counterfactual edits to the environment.
+A positive control for it is cheap: fix the cause yourself, hide it from the
+investigator, and score whether the protocol recovers it. Nobody had, and the
+protocol's authors say so.
 
-A positive control is cheap to build. Fix the cause yourself, hide it from the
-investigator, and score whether the protocol recovers it.
+What the control turns up is that the first step never happens.
 
 My contributions:
 
@@ -616,13 +603,55 @@ The investigator still selects which probes it sees.
 The preregistration covers the primary metric, its decision rule, the arms,
 the first three conditions and the probe's layer-selection rule and transfer
 floor. It does not cover the gate thresholds, which were set during a pilot and
-are documented in §5.1, nor `cot_forced`, which was added after three
+are documented in Appendix A, nor `cot_forced`, which was added after three
 conditions had been scored. So §4.4 is confirmatory and everything in §4.1 to
 §4.3 and §4.5's action split is exploratory. Nothing is corrected for multiple
 comparisons: four McNemar pairs, two Fisher tests and two Mann-Whitney tests
 are reported, and the p = 0.022 in §4.2 should be read against that count.
 
-### 5.1 Design decisions, and when each was made
+## 6 Conclusion
+
+A protocol that asks you to read a model's reasoning does not read it. Removing
+the reasoning trace from 87 investigations moved five verdicts one way and six
+the other. Adding the counterfactual interventions the protocol specifies moved
+fifty-two verdicts and improved nothing, trading conviction accuracy for
+exoneration accuracy at par. Requiring the investigator to quote one sentence
+from the same reasoning before ruling fixed eleven cases and broke two, and was
+the only intervention that helped. A linear probe on the residual stream,
+transferring between two scenarios that share no vocabulary, recovers the
+hidden directive in 92% of the trajectories where the model never said it out
+loud, while the protocol reading those same trajectories is at chance. The same
+probe cannot tell which of those models acted on the directive and which did
+not, so what it recovers is the instruction and not the intent.
+
+`[FILL: one closing line in your own voice. Loyal Lies ended "An auditor's job
+is not to elicit an answer; it is to elicit an answer that survives an attempt
+to kill it." Find this paper's version. Do not reuse that one.]`
+
+## Code and data
+
+Repository: https://github.com/PotatoChoudhary/quiet-motive
+
+Contains the pipeline, all 270 trajectories with reasoning traces, all
+investigations with verdicts including the failed action-only condition, the
+probe library, activations, `results.json`, `probe_results.json`, every figure,
+and an offline test suite that runs the whole pipeline against a scripted model
+with no GPU.
+
+`python verify.py` recomputes every number in this document from
+`trajectories.jsonl` and `forensics.jsonl` and exits nonzero on any mismatch.
+It does not read `results.json` for its answers: it implements its own exact
+McNemar, Fisher and Wilson and recomputes from the raw rows, so a stored
+summary that has drifted from the data fails the check rather than passing it.
+57 claims, all currently matching. `src/probe_action.py` and
+`src/probe_strict.py` reproduce §4.5's two controls from the stored
+activations, with no GPU.
+
+---
+
+# Appendices
+
+## A. Design decisions, and when each was made
 
 `PREREGISTRATION.md` has one commit and has never been edited; the amendment
 log is appended below its original text rather than replacing any of it, and
@@ -676,61 +705,8 @@ split were run last, on activations and trajectories already on disk. All three
 weakened claims this document had previously made, which is the direction that
 makes a post hoc analysis worth reporting rather than worth hiding.
 
-## 6 Conclusion
 
-A protocol that asks you to read a model's reasoning does not read it. Removing
-the reasoning trace from 87 investigations moved five verdicts one way and six
-the other. Adding the counterfactual interventions the protocol specifies moved
-fifty-two verdicts and improved nothing, trading conviction accuracy for
-exoneration accuracy at par. Requiring the investigator to quote one sentence
-from the same reasoning before ruling fixed eleven cases and broke two, and was
-the only intervention that helped. A linear probe on the residual stream,
-transferring between two scenarios that share no vocabulary, recovers the
-hidden directive in 92% of the trajectories where the model never said it out
-loud, while the protocol reading those same trajectories is at chance. The same
-probe cannot tell which of those models acted on the directive and which did
-not, so what it recovers is the instruction and not the intent.
-
-`[FILL: one closing line in your own voice. Loyal Lies ended "An auditor's job
-is not to elicit an answer; it is to elicit an answer that survives an attempt
-to kill it." Find this paper's version. Do not reuse that one.]`
-
-## References
-
-[1] A. Singh, G. Kroiz, S. Rajamanoharan, N. Nanda. *Model Forensics:
-Investigating Whether Concerning Behavior Reflects Misalignment.*
-arXiv:2606.26071.
-
-[2] E. Hubinger et al. *Sleeper Agents: Training Deceptive LLMs that Persist
-Through Safety Training.* arXiv:2401.05566.
-
-[3] E. Turner, A. Soligo, M. Taylor, S. Rajamanoharan, N. Nanda. *Model
-Organisms for Emergent Misalignment.* arXiv:2506.11613.
-
-[4] D. Tan, J. Bostock, et al. (Arcadia Alignment). *Your Model Organisms Might
-Be Fried.* LessWrong, 2026.
-https://www.lesswrong.com/posts/WmEcgcstzYCcMpc7z/your-model-organisms-might-be-fried
-
-## Code and data
-
-Repository: https://github.com/PotatoChoudhary/quiet-motive
-
-Contains the pipeline, all 270 trajectories with reasoning traces, all
-investigations with verdicts including the failed action-only condition, the
-probe library, activations, `results.json`, `probe_results.json`, every figure,
-and an offline test suite that runs the whole pipeline against a scripted model
-with no GPU.
-
-`python verify.py` recomputes every number in this document from
-`trajectories.jsonl` and `forensics.jsonl` and exits nonzero on any mismatch.
-It does not read `results.json` for its answers: it implements its own exact
-McNemar, Fisher and Wilson and recomputes from the raw rows, so a stored
-summary that has drifted from the data fails the check rather than passing it.
-57 claims, all currently matching. `src/probe_action.py` and
-`src/probe_strict.py` reproduce §4.5's two controls from the stored
-activations, with no GPU.
-
-## LLM usage statement
+## B. LLM usage statement
 
 `[FILL. Write this yourself. The facts, in the order they happened:`
 
@@ -760,7 +736,7 @@ activations, with no GPU.
    fixed before the 270-trajectory run. The git log shows one gate's code was
    committed 2m43s after the run finished. The claim was written from memory of
    the decisions rather than from the log, and was corrected only when the log
-   was actually read. See section 5.1.`
+   was actually read. See Appendix A.`
 9. `The verbalisation detector was carried for two days as if validated,
    because arm B sat at 0%. Arm B bounds false positives and says nothing
    whatever about false negatives, and I treated the one as evidence for the
@@ -788,3 +764,21 @@ activations, with no GPU.
 you would be by an error in each. Do not clean this up. The list above is the
 answer to "how did you make sure they weren't giving you slop," and it is more
 convincing than any claim of diligence.]`
+
+## References
+
+[1] A. Singh, G. Kroiz, S. Rajamanoharan, N. Nanda. *Model Forensics:
+Investigating Whether Concerning Behavior Reflects Misalignment.*
+arXiv:2606.26071.
+
+[2] E. Hubinger et al. *Sleeper Agents: Training Deceptive LLMs that Persist
+Through Safety Training.* arXiv:2401.05566.
+
+[3] E. Turner, A. Soligo, M. Taylor, S. Rajamanoharan, N. Nanda. *Model
+Organisms for Emergent Misalignment.* arXiv:2506.11613.
+
+[4] D. Tan, J. Bostock, et al. (Arcadia Alignment). *Your Model Organisms Might
+Be Fried.* LessWrong, 2026.
+https://www.lesswrong.com/posts/WmEcgcstzYCcMpc7z/your-model-organisms-might-
+be-fried
+
