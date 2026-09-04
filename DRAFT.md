@@ -68,10 +68,6 @@ all trajectories and in 75% of the 12 that were investigated, because
 investigating conditions on the action and selects the runs where suppression
 failed.
 
-Figure 1 is the evidence ladder. Figure 2 is per-arm accuracy, which shows arm
-B carrying the entire signal. Figure 4 is the probe layer sweep, including the
-instability.
-
 ---
 
 ## 1 Introduction
@@ -112,16 +108,26 @@ My contributions:
 
 ## 2 Related work
 
-**Model forensics.** Singh et al. propose the protocol under test and name the
-missing positive control. This work supplies one.
+**Model forensics.** Singh et al. [1] propose the protocol under test: read the
+chain of thought to form a hypothesis, then edit the prompt or environment to
+test it, over six agentic environments. It works in their hands where the
+hypothesis makes a prediction they can check, establishing that Kimi K2
+Thinking takes shortcuts from a disposition toward low-effort actions and that
+DeepSeek R1 deceives to stay consistent with a previous instance of itself.
+Their negative result is the one with no floor under it: testing whether Kimi
+K2 Thinking believes it is violating user intent, they find no evidence and
+write that "without positive controls we cannot confirm our tests would detect
+it." This work supplies a positive control, and finds that the protocol's
+weakest link is earlier than expected.
 
-**Model organisms.** Hubinger et al. and Turner et al. build deliberately
-misaligned models to test whether detection finds what is known to be present.
-This study induces causes in context rather than in weights, which is cheaper
-and weaker; see §5.
+**Model organisms.** Hubinger et al. [2] and Turner et al. [3] build
+deliberately misaligned models so that detection can be scored against a known
+answer. This study induces causes in context rather than in weights, which is
+cheaper and weaker; see §5.
 
-**Organism degradation.** Tan et al. show that published model organisms lose
-instruction-following and preference coherence. Causes induced in context avoid
+**Organism degradation.** Tan et al. [4] find that published model organisms
+drop considerably in instruction-following and lose preference coherence
+relative to the models they were made from. Causes induced in context avoid
 that failure mode entirely, at the cost of realism.
 
 ## 3 Method
@@ -427,8 +433,20 @@ what an earlier draft reported.
 | 32 | 97.8% | 91.0% | 88.9% | 91.4% | 92.0% | 75 to 98 |
 
 Layer 0 sits at chance, which is the sanity check working. The A-versus-B
-direction holds: cross-scenario transfer is between 89% and 99% at every
-layer above the embedding.
+direction holds: cross-scenario transfer is between 89% and 99% at every layer
+above the embedding.
+
+Three baselines at layer 12, each run 200 times where it has a seed:
+
+| | cross-scenario A/B | quiet arm D as A |
+|---|---|---|
+| the probe | **98.9%** | **92.0%** |
+| same features, training labels shuffled | 50.1% | 47.1% |
+| a random direction, split at its median | 48.8% | 49.5% |
+| layer 0 embeddings | 49.4% | 0.0% |
+
+The shuffled-label draws span 31% to 71% cross-scenario at 95%, so 98.9% is not
+something this pipeline produces from noise.
 
 At layer 12, selected by a rule fixed in code before any activations existed
 (best cross-scenario transfer), the probe classifies 92.0% of conservatively
@@ -676,6 +694,22 @@ not, so what it recovers is the instruction and not the intent.
 `[FILL: one closing line in your own voice. Loyal Lies ended "An auditor's job
 is not to elicit an answer; it is to elicit an answer that survives an attempt
 to kill it." Find this paper's version. Do not reuse that one.]`
+
+## References
+
+[1] A. Singh, G. Kroiz, S. Rajamanoharan, N. Nanda. *Model Forensics:
+Investigating Whether Concerning Behavior Reflects Misalignment.*
+arXiv:2606.26071.
+
+[2] E. Hubinger et al. *Sleeper Agents: Training Deceptive LLMs that Persist
+Through Safety Training.* arXiv:2401.05566.
+
+[3] E. Turner, A. Soligo, M. Taylor, S. Rajamanoharan, N. Nanda. *Model
+Organisms for Emergent Misalignment.* arXiv:2506.11613.
+
+[4] D. Tan, J. Bostock, et al. (Arcadia Alignment). *Your Model Organisms Might
+Be Fried.* LessWrong, 2026.
+https://www.lesswrong.com/posts/WmEcgcstzYCcMpc7z/your-model-organisms-might-be-fried
 
 ## Code and data
 
