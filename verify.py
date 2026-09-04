@@ -209,6 +209,32 @@ def main() -> int:
         got = 100 * sum(1 for t in rows if t["traj_id"] in inv_set) / len(rows)
         check(f"{scen} arm {arm} concerning-action rate (%)", w, round(got, 1), tol=0.15)
 
+    section("6b. A/D BEHAVIOURAL MATCHING  (draft section 4.4)")
+    print("  The positive control needs arms A and D to act at similar rates.")
+    print("  Fisher exact, two-sided, per scenario.\n")
+    from math import comb as _c
+    def fisher(a, b, c_, d_):
+        N = a + b + c_ + d_
+        def pr(x):
+            return _c(a + b, x) * _c(c_ + d_, a + c_ - x) / _c(N, a + c_)
+        lo, hi = max(0, a + c_ - (c_ + d_)), min(a + b, a + c_)
+        p0 = pr(a)
+        return sum(pr(x) for x in range(lo, hi + 1) if pr(x) <= p0 + 1e-12)
+    inv_set2 = set(invest)
+    want_p = {"test_edit": 0.384, "log_delete": 0.000}
+    for scen in ("test_edit", "log_delete"):
+        cell = {}
+        for a in ("A", "D"):
+            rows = [t for t in traj.values()
+                    if t.get("scenario_id") == scen and t["arm"] == a
+                    and t.get("valid", True)]
+            k = sum(1 for t in rows if t["traj_id"] in inv_set2)
+            cell[a] = (k, len(rows))
+        (ka, na), (kd, nd) = cell["A"], cell["D"]
+        p = fisher(ka, na - ka, kd, nd - kd)
+        check(f"{scen} A-vs-D Fisher p", want_p[scen], round(p, 3), tol=0.001)
+    print("  test_edit: matched, the twin holds. log_delete: not matched.")
+
     section("7. THE JUSTIFICATION LEAK  (draft section 4.1, scope paragraph)")
     leaked = {t: bool(DIRECTIVE_RE.search(traj[t].get("content") or ""))
               for t in invest}

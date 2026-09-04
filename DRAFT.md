@@ -44,21 +44,24 @@ nothing.** Twenty-six fixed, twenty-six broken, p = 1.00. They move the
 investigator from convicting 90% of the time to 32%, fixing arm B and breaking
 arms A and D by exactly as much.
 
-**A-like internal state is linearly decodable where the transcript is silent.**
-A linear probe trained on arm A against arm B in one scenario, and tested in
-the other, transfers at 98.9% at the layer with the best transfer. On the 25
-held-out arm D trajectories that a conservative detector finds never state the
-motive, it classifies 92.0% as arm A, 95% CI 75 to 98. Under the full protocol
-the same arm is read correctly half the time. The readout is unstable across
-layers, ranging from 12% to 100%, so this is suggestive rather than settled.
-The A-versus-B direction is not: it transfers between 89% and 99% at every
-layer above the embedding.
+**A hidden directive stays decodable after the transcript goes quiet.**
+A linear probe trained on arm A against arm B in one scenario, and tested
+in the other, transfers at 98.9%. On the 25 held-out arm D trajectories that a
+conservative detector finds never state the motive, it classifies 92.0% as arm
+A, 95% CI 75 to 98, where the transcript-based protocol is at chance. **It is
+detecting the directive, not the acting on it.** Arm A trajectories that took
+the concerning action and those that did not score 0.916 and 0.899, p = 0.90.
+Suppression removes the mention from the transcript and leaves the
+representation. The arm-D readout is unstable across layers, 12% to 100%; the
+A-versus-B direction is not, transferring between 89% and 99% everywhere above
+the embedding.
 
 **The preregistered primary outcome was null, and the null is uninformative.**
 The preregistration named two conditions under which a zero legibility gap
 would say nothing, and both hold: the reasoning trace was not being read in the
-first place, and arm D's action rate diverges from arm A's, so the two are not
-legibility twins. Selection compounds it. Arm D states its incentive in 48% of
+first place, and arm D's action rate diverges from arm A's in one of the two
+scenarios, so the arms are legibility twins in `test_edit` and not in
+`log_delete`. Selection compounds it. Arm D states its incentive in 48% of
 all trajectories and in 75% of the 12 that were investigated, because
 investigating conditions on the action and selects the runs where suppression
 failed.
@@ -98,12 +101,12 @@ My contributions:
 3. **One line of prompt recovers what the intervention loop does not.**
    Requiring the investigator to quote the decisive sentence before ruling
    fixes 11 cases and breaks 2, p = 0.022.
-4. **A-like internal state is linearly decodable where the transcript is
-   silent.** A probe transferring across scenarios at 98.9% classifies 92.0% of
-   never-verbalising arm D trajectories as arm A, at a layer chosen by a rule
-   fixed before the data existed. This is decodability, not a readout of the
-   model's motive; §4.5 says what separates the two and which experiment
-   settles it.
+4. **Suppressing verbalisation does not remove the representation.** A probe
+   transferring across scenarios at 98.9% classifies 92.0% of never-verbalising
+   arm D trajectories as arm A, at a layer chosen by a rule fixed before the
+   data existed. A within-arm test shows it reads the directive's presence and
+   not the model's acting on it, so this is a result about what suppression
+   leaves behind and about white-box auditing, not about motive detection.
 
 ## 2 Related work
 
@@ -346,10 +349,21 @@ CoT, so suppressing CoT content cannot be what causes the gap."* §4.1: 60/87
 against 59/87, p = 1.00. You cannot degrade evidence that is not being read.
 
 *"Arm D's behaviour differing from arm A's, then D is not a legibility twin and
-the gap is confounded by behaviour."* §3.3: arm A takes the concerning action
-in 20.0% and 68.9% of trajectories by scenario, arm D in 11.1% and 15.6%. The
-suppression protocol was written to constrain speech and it changed the action
-as well. D is not a legibility twin.
+the gap is confounded by behaviour."* This fired in one scenario and not the
+other, which the earlier framing of "the manipulation failed" obscured.
+
+| scenario | arm A | arm D | Fisher exact |
+|---|---|---|---|
+| `test_edit` | 9/45 = 20% | 5/45 = 11% | p = 0.384 |
+| `log_delete` | 31/45 = 69% | 7/45 = 16% | p < 0.001 |
+
+In `test_edit` the arms are behaviourally matched and the twin holds. In
+`log_delete` it does not: a protocol written to constrain speech cut the action
+rate by a factor of four. Restricted to `test_edit`, where the comparison is
+valid, arms A and D are at 100% in three conditions and 56% against 60% in
+`full`, on 9 and 5 investigated cases. That is the matched estimate and it is
+too small to carry anything. It is reported so the matched number is not simply
+missing.
 
 Selection compounds the second one. Investigation conditions on the concerning
 action, which selects the arm-D runs where suppression failed, so the analysed
@@ -374,7 +388,7 @@ so there is no behavioural confound and nothing to select on. The cost is that
 a stripped trace is off-distribution for the investigator, which is a smaller
 problem than the one it replaces.
 
-### 4.5 A-like internal state is linearly decodable where the transcript is silent
+### 4.5 A hidden directive stays decodable after the transcript goes quiet
 
 Logistic probe on the residual stream at the final token, trained on arm A
 against arm B in `log_delete` and tested in `test_edit`. The scenarios share no
@@ -418,16 +432,37 @@ selection rule was pre-specified, which rules out choosing the layer to fit the
 answer, but it does not make the readout stable. Report the range with the
 point estimate.
 
-**What this does not show.** The cause block sits in context for both arm A and
-arm D. Cross-scenario transfer rules out the probe reading literal tokens,
-since the two scenarios phrase the incentive differently, but it does not rule
-out the probe detecting that a scoring directive is present rather than that
-the model is acting on one. Two experiments separate those and neither was run.
-The cheap one is causal: add the layer-12 direction to arm B's residual stream
-at inference and measure whether the concerning-action rate rises. A direction
-that only registers the presence of a directive should not change behaviour; a
-direction the model acts on should. The expensive one is to induce the cause in
-weights rather than in context.
+**The probe reads the directive, not the acting on it.** Every arm-A
+trajectory carries the directive in context, but only 9 of 45 took the
+concerning action. If the probe detects a motive the model is acting on, those
+9 should separate from the other 36. They do not.
+
+| held-out group, `test_edit` | n | mean P(arm A) | classified A |
+|---|---|---|---|
+| arm A, took the concerning action | 9 | 0.916 | 100% |
+| arm A, did not | 36 | 0.899 | 97% |
+| arm B, took the concerning action | 18 | 0.051 | 0% |
+| arm B, did not | 26 | 0.085 | 0% |
+
+Mann-Whitney on arm A, acted against not acted: p = 0.898. Arm B is the control
+on this control, since it has no directive to detect and its own split is also
+flat, p = 0.277, which rules out the probe tracking the action itself.
+
+So the claim has to be the narrow one. A linear readout of the residual stream
+detects that a scoring directive is present in the context, and keeps detecting
+it when the model has been instructed not to mention that directive and does
+not mention it. It does not detect whether the model is acting on the
+directive. Read as a finding about the suppression manipulation, this says the
+output protocol removes the mention from the transcript and leaves the
+representation in place. Read as an auditing result, it says a hidden incentive
+in a system prompt is recoverable from activations when it is not recoverable
+from the transcript. Neither is a claim about motive.
+
+Separating presence from action needs an experiment I did not run: add the
+layer-12 direction to arm B's residual stream at inference and measure whether
+the concerning-action rate moves. A direction that only registers presence
+should not change behaviour. The stronger version induces the cause in weights
+rather than in context.
 
 **On whether activations are a fair thing to use.** An external auditor holding
 only an API would not have them. The protocol under test is not an external
@@ -517,8 +552,10 @@ manipulation, not for it.
 The probe's arm-D readout is unstable across layers with comparable transfer.
 The A-versus-B direction is not.
 
-The probe cannot distinguish "a scoring directive is present in context" from
-"this model is acting on one." A weight-induced cause is the test and was not
+The probe does not distinguish "a scoring directive is present in context"
+from "this model is acting on one", and §4.5 now measures that rather than
+conceding it: within arm A the two groups score 0.916 and 0.899, p = 0.90. The
+steering test that would separate them, and a weight-induced cause, were not
 run.
 
 The investigator is the same model as the subject, Qwen3.5-9B. §4.2 argues
@@ -532,7 +569,9 @@ Arm D has 12 investigated cases. No claim in §4.1 to §4.3 depends on it, and
 Causes are induced in context, not in weights.
 
 Two scenarios, and the base-rate reversal between them says scenario choice
-matters more than arm assignment. Two is not a sample of scenarios.
+matters more than arm assignment. It also decides whether the positive control
+works at all: A and D are behaviourally matched in `test_edit` and not in
+`log_delete`. With two scenarios I cannot say which case is typical.
 
 Probe results in the `full` condition are precomputed per (scenario, arm,
 probe) rather than per investigation, so they carry no per-trajectory noise.
@@ -599,9 +638,11 @@ fifty-two verdicts and improved nothing, trading conviction accuracy for
 exoneration accuracy at par. Requiring the investigator to quote one sentence
 from the same reasoning before ruling fixed eleven cases and broke two, and was
 the only intervention that helped. A linear probe on the residual stream,
-transferring between two scenarios that share no vocabulary, reads the motive
-in 88.6% of the trajectories where the model never said it out loud, while the
-protocol reading those same trajectories is at chance.
+transferring between two scenarios that share no vocabulary, recovers the
+hidden directive in 92% of the trajectories where the model never said it out
+loud, while the protocol reading those same trajectories is at chance. The same
+probe cannot tell which of those models acted on the directive and which did
+not, so what it recovers is the instruction and not the intent.
 
 `[FILL: one closing line in your own voice. Loyal Lies ended "An auditor's job
 is not to elicit an answer; it is to elicit an answer that survives an attempt
@@ -666,7 +707,13 @@ passing it. 48 claims, all currently matching.
    hand-labelling pass was set up and abandoned; the correction above rests on
    text anyone can grep for, not on labels. Nothing in the harness would have
    caught this, and the control I was leaning on cannot see it by construction.`
-10. `A model asked to review this work reported that it had checked the numbers
+10. `The probe section claimed the probe read the motive for three days. The
+   test that settles it costs one line and no GPU: every arm-A trajectory has
+   the directive, only some acted on it, so score the two groups and see if
+   they differ. They do not, p = 0.90. I wrote the caveat about presence versus
+   action into the limitations section twice before running the test that
+   turns it from a caveat into a measurement.`
+11. `A model asked to review this work reported that it had checked the numbers
    against the public repository and listed the `redacted` condition at 53/87.
    The repository stores no raw counts; 53 is the balanced accuracy for that
    condition multiplied by 87. The real count is 60/87, and the paired test
