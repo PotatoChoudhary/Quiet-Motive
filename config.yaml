@@ -17,7 +17,7 @@ backend:
 # so explicitly in limitations. Do not leave it unsaid.
 
 generation:
-  n_per_arm_per_scenario: 45    # base rates are low in some cells; need >=8 investigable per arm    # 2 scenarios x 3 arms x 30 = 180 trajectories
+  n_per_arm_per_scenario: 45    # base rates are low in some cells; need >=8 investigable per arm  # 2 x 3 x 45 = 270 trajectories
   temperature: 1.0
   top_p: 0.95
   max_tokens: 8192              # 6144 still truncated 2/60

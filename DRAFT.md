@@ -3,16 +3,17 @@
 Deven Choudhary
 MATS 12.0 application task, September 2026
 
-> DRAFT v2. All numbers are final and checkable against `data/results.json`,
-> `data/probe_results.json` and `python -m src.leakcheck`.
-> `[FILL]` marks the parts only you can write: §4.6, the closing line, and the
-> LLM usage statement.
+> FINAL DRAFT. Every number is checkable against `data/results.json`,
+> `data/probe_results.json`, and `python -m src.leakcheck`.
+>
+> Three things are still yours and cannot be written for you: §4.6 (from
+> `notes.md`), the closing line of §6, and the LLM usage statement. Facts for
+> the last one are listed at the end; the prose has to be in your words,
+> because the form treats LLM-voiced answers as a negative signal.
 
 ---
 
 ## Executive summary
-
-*(target: under 600 words, first 1 to 3 pages, with Figures 1 and 2)*
 
 Singh, Kroiz, Rajamanoharan and Nanda propose model forensics: when a model
 does something concerning, read its chain of thought, form a hypothesis about
@@ -27,40 +28,40 @@ action for causes fixed by construction: a hidden objective conflicting with
 user intent (A), a false belief about the environment (B), and A's objective
 with verbalisation suppressed (D). Ground truth is MISALIGNED, MISTAKE,
 MISALIGNED. A blind investigator sees the scenario and the transcript, never
-the arm or the injected cause. Four evidence conditions, 87 investigated cases,
-348 investigations. All four conditions run on the same cases, so every
-contrast below is a paired McNemar test rather than a comparison of
-independent intervals.
+the arm or the injected cause. Four evidence conditions run on the same 87
+investigated cases, so every contrast is a paired McNemar test.
 
-**Showing the investigator the chain of thought does nothing.** Accuracy is
-60/87 with the reasoning withheld and 59/87 with it shown. Five cases fixed,
-six broken, p = 1.00.
+**Showing the investigator the chain of thought does nothing.** 60/87 correct
+with the reasoning withheld, 59/87 with it shown. Five cases fixed, six broken,
+p = 1.00.
 
 **Requiring a quote from that same reasoning fixes 11 cases and breaks 2,**
 p = 0.022, taking accuracy to 68/87. The information was present and usable.
 The protocol did not use it until told to.
 
-**The counterfactual probes change 52 of 87 verdicts and improve nothing.**
-Twenty-six fixed, twenty-six broken, p = 1.00. They move the investigator from
-convicting 90% of the time to 32%, which fixes arm B and breaks arms A and D by
-exactly as much.
+**The counterfactual interventions change 52 of 87 verdicts and improve
+nothing.** Twenty-six fixed, twenty-six broken, p = 1.00. They move the
+investigator from convicting 90% of the time to 32%, fixing arm B and breaking
+arms A and D by exactly as much.
 
-**A linear probe on the residual stream separates the two causes where the
-transcript-based protocol cannot.** Trained on arm A against arm B in one
-scenario and tested in the other, it transfers at 98.9% at the layer with best
-transfer, and classifies 91.1% of held-out arm D as arm A. The layer sweep is
-unstable on arm D and three of eight layers disagree, so this is suggestive
-rather than settled; the A-versus-B direction itself is robust, transferring
-between 89% and 99% at every layer above the embedding.
+**A-like internal state is linearly decodable where the transcript is silent.**
+Trained on arm A against arm B in one scenario and tested in the other, it
+transfers at 98.9% at the layer with best transfer. On the 35 held-out arm D
+trajectories that never verbalised the motive, it classifies 88.6% as arm A
+(95% CI 74 to 95). Under the full protocol the same arm is read correctly 50%
+of the time. The layer sweep is unstable on arm D, ranging 14% to 100%, so
+this is suggestive rather than settled; the A-versus-B direction itself
+transfers between 89% and 99% at every layer above the embedding.
 
 **The legibility manipulation produced nothing, and the reason is selection.**
-Arm D verbalises its motive in 22% of all trajectories but 67% of the 12 that
-were investigated. Conditioning on having taken the concerning action selects
-for the arm-D runs that broke suppression, so in the analysed sample arm D is
+Arm D verbalises in 22% of all trajectories but 67% of the 12 that were
+investigated. Conditioning on having taken the concerning action selects for
+the arm-D runs where suppression failed, so in the analysed sample arm D is
 nearly as loud as arm A.
 
-**Figure 1** is the evidence ladder. **Figure 2** is per-arm accuracy, which
-shows arm B carrying the entire signal.
+Figure 1 is the evidence ladder. Figure 2 is per-arm accuracy, which shows arm
+B carrying the entire signal. Figure 4 is the probe layer sweep, including the
+instability.
 
 ---
 
@@ -93,9 +94,12 @@ My contributions:
 3. **One line of prompt recovers what the intervention loop does not.**
    Requiring the investigator to quote the decisive sentence before ruling
    fixes 11 cases and breaks 2, p = 0.022.
-4. **The evidence was in the activations the whole time.** A linear probe
-   transferring across scenarios at 98.9% reads the suppressed arm as
-   misaligned, at a layer chosen by a rule fixed before the data.
+4. **A-like internal state is linearly decodable where the transcript is
+   silent.** A probe transferring across scenarios at 98.9% classifies 88.6% of
+   never-verbalising arm D trajectories as arm A, at a layer chosen by a rule
+   fixed before the data existed. This is decodability, not a readout of the
+   model's motive; §4.5 says what separates the two and which experiment
+   settles it.
 
 ## 2 Related work
 
@@ -115,7 +119,7 @@ that failure mode entirely, at the cost of realism.
 
 ### 3.1 Arms
 
-One model, Qwen3.5-9B, served with vLLM, temperature 1.0, seeded per
+One model, Qwen3.5-9B, served with vLLM at temperature 1.0, seeded per
 trajectory. Each arm receives a different cause block in its system prompt.
 
 | arm | injected cause | ground truth |
@@ -138,7 +142,7 @@ action and broke the comparison.
 
 A phrase-level detector counts whether a trajectory's reasoning refers to the
 agent's own incentive. Arm B has no incentive to refer to, so its rate is the
-false-positive floor.
+detector's false-positive floor.
 
 | arm | all 90 trajectories | the investigated subset |
 |---|---|---|
@@ -146,15 +150,15 @@ false-positive floor.
 | B | 0% | 0% (n=35) |
 | D | 22% | 67% (n=12) |
 
-The manipulation worked: 79% against 22% over all trajectories. **The analysed
-sample does not inherit it.** Only trajectories that took the concerning action
-are investigated, and conditioning on that selects for the arm-D runs where
-suppression failed. Among investigated cases the contrast is 95% against 67%,
-not 79% against 22%.
+The manipulation worked: 79% against 22% across all trajectories. **The
+analysed sample does not inherit it.** Only trajectories that took the
+concerning action are investigated, and conditioning on that selects for the
+arm-D runs where suppression failed. Among investigated cases the contrast is
+95% against 67%, not 79% against 22%.
 
-Every legibility claim in this paper is therefore weak by construction, and §4.4
+Every legibility claim in §4 is weak by construction because of this, and §4.4
 should be read as a statement about the analysed sample rather than about the
-manipulation.
+manipulation. §4.5 is not affected: the probe uses all trajectories.
 
 An earlier detector matched bare words and scored arm B at 40%; every one of
 those was a false positive on ordinary engineering language.
@@ -180,7 +184,7 @@ The same injected motive drives the concerning action in 69% of log-deletion
 trajectories and 20% of test-editing ones. What this model will and will not do
 is governed more by the setting than by the motive.
 
-### 3.4 The investigator and the four conditions
+### 3.4 The investigator and the conditions
 
 A blind investigator receives the user-facing scenario and the transcript. It
 never sees the arm label or the cause block. Its counterfactual probes modify
@@ -194,14 +198,17 @@ cause it cannot see.
 | `full` | `cot_only` plus results of up to two counterfactual probes it selects |
 | `cot_forced` | `cot_only` plus a requirement to quote the decisive sentence and state what it implies, before ruling |
 
-The investigator is the same model as the subject. §5 treats this.
+A fifth condition withholding the reasoning and the justification was
+attempted and produced no parseable verdicts. It is reported in §5, not §4.
+
+The investigator is the same model as the subject.
 
 ### 3.5 Metric
 
 **Primary: raw accuracy over all 87 investigated cases, with paired McNemar
-tests between conditions.** The four conditions run on the same cases, so the
-per-case discordance is the right test and independent confidence intervals
-would not license any claim about a difference.
+tests between conditions.** The conditions run on the same cases, so per-case
+discordance is the right test, and independent confidence intervals would not
+license any claim about a difference.
 
 An investigator that always says MISALIGNED scores 52/87, or 59.8%, because 52
 of the cases are arms A and D. That, not 50%, is the baseline to beat.
@@ -209,6 +216,10 @@ of the cases are arms A and D. That, not 50%, is the baseline to beat.
 Balanced accuracy over arms A and B is reported as a secondary check. It
 reweights per case and drops arm D, and §4.3 shows the two metrics disagreeing
 in a way that is itself informative.
+
+Bootstrap intervals are 95% percentile, 10,000 resamples within arm. Probe
+intervals are Wilson, because n is small enough that the normal approximation
+misleads.
 
 ## 4 Results
 
@@ -230,9 +241,11 @@ D trajectories, so redaction is partial.
 
 The leak does not explain the null. Restricting to the 78 cases where the
 justification did not name the motive: `redacted` 65.4%, `cot_only` 64.1%. The
-9 leaking cases are at 100% in both conditions and cannot carry the result.
+9 leaking cases sit at 100% in both conditions and cannot carry the result.
 
-A condition withholding both the reasoning and the justification was not run.
+The claim this supports is therefore that the extended reasoning trace adds
+nothing over a one-sentence self-report, not that self-report of any kind goes
+unread. The condition that would separate those failed; see §5.
 
 ### 4.2 Requiring a quote fixes 11 cases and breaks 2
 
@@ -243,15 +256,15 @@ A condition withholding both the reasoning and the justification was not run.
 
 Identical evidence. The only change is an instruction to quote the sentence the
 investigator finds decisive, and to say what it implies, before ruling. Paired:
-11 fixed, 2 broken, p = 0.022. In balanced terms the gain is 60.2% to 72.9%,
-carried entirely by arm B, where false convictions fall from 27 of 35 to 19.
+11 fixed, 2 broken, p = 0.022. In balanced terms, 60.2% to 72.9%, carried
+entirely by arm B, where false convictions fall from 27 of 35 to 19 of 35.
 
 The information was in the transcript and was usable. It went unused.
 
 The manipulation is two things at once, quoting and articulating a motive from
 the quote, and this design does not separate them.
 
-### 4.3 The counterfactual probes change 52 verdicts and improve nothing
+### 4.3 The interventions change 52 verdicts and improve nothing
 
 | condition | raw | balanced {A,B} | arm A | arm B | arm D | says MISALIGNED |
 |---|---|---|---|---|---|---|
@@ -259,15 +272,15 @@ the quote, and this design does not separate them.
 | `full` | 59/87 | 72.1% | 50.0% | 94.3% | 50.0% | 32% |
 | `cot_forced` | 68/87 | 72.9% | 100% | 45.7% | 100% | 82% |
 
-Paired, `cot_only` against `full`: 26 cases fixed, 26 broken, p = 1.00. Raw
-accuracy is identical to the case, 59/87 both.
+Paired, `cot_only` against `full`: 26 fixed, 26 broken, p = 1.00. Raw accuracy
+is identical to the case.
 
 The two metrics disagree and the disagreement is the finding. Balanced accuracy
-rises 12 points because the probes move errors off arm B, which has 35 cases,
-onto arms A and D, which have 52 between them; balancing weights arm B more
-heavily per case. Per case, the probes are a wash. They shift the
-investigator's prior from convicting 90% of the time to 32% and buy exoneration
-accuracy at exactly the price of conviction accuracy.
+rises 12 points because the interventions move errors off arm B, which has 35
+cases, onto arms A and D, which have 52 between them; balancing weights arm B
+more heavily per case. Per case, they are a wash. They shift the investigator
+from convicting 90% of the time to 32% and buy exoneration accuracy at exactly
+the price of conviction accuracy.
 
 `cot_forced` beats `full` directionally, 27 fixed against 18 broken, p = 0.233.
 Not significant at this sample size.
@@ -277,79 +290,148 @@ Not significant at this sample size.
 says deleting the log "is a reportable control failure." That raises the cost
 of the action as well as correcting the belief, and a score-maximising agent
 stops for the first reason as readily as a mistaken one stops for the second.
-Its collapse is therefore not diagnostic. `[FILL from notes.md: in how many of
-the failures you read was the state_true_fact collapse the stated reason for a
-MISTAKE verdict?]`
+Its collapse is therefore not diagnostic.
+
+It also does not explain the failures. `state_true_fact` was among the probes
+the investigator chose in 24 of the 26 false exonerations in `full`, which
+looks damning until you count the other side: it was chosen in 23 of the 26
+correct verdicts as well. The defective probe is not concentrated in the errors,
+so the errors need a different explanation. §4.6 gives one.
 
 The `full` numbers are evidence about this implementation, not about the
 protocol as published.
 
-### 4.4 The legibility manipulation did nothing, and selection is why
+### 4.4 The preregistered primary outcome was null, and both of its preregistered falsifiers fired
 
-The gap, balanced accuracy over {A,B} minus over {D,B}, is 0.0 points in
-`cot_forced`, `full` and `redacted`, and -1.3 in `cot_only`.
+`GAP = acc{A,B} - acc{D,B}` in condition `full` was the preregistered primary
+metric. It is 0.0, CI [-15.8, +15.8]. It is 0.0 in `cot_forced` and `redacted`
+too, and -1.3 in `cot_only`.
 
-Do not read this as the protocol passing its positive control. Two reasons, and
-neither is about legibility.
+The preregistered decision rule for a null was explicit: write it up "as a
+positive control the protocol passes, with conviction." I am not doing that,
+and the reason is that the same document named two conditions under which the
+null would be uninformative, and both of them hold.
 
-First, §4.1: the verdict is not built from the reasoning trace, so varying what
-the trace contains cannot move it.
+*"`redacted` condition scoring near `cot_only`, the verdict was never using the
+CoT, so suppressing CoT content cannot be what causes the gap."* §4.1: 60/87
+against 59/87, p = 1.00. You cannot degrade evidence that is not being read.
 
-Second, §3.2: among investigated cases arm D verbalises at 67% against arm A's
-95%. The manipulation is 57 points wide over all trajectories and 28 points
-wide in the sample that was actually analysed.
+*"Arm D's behaviour differing from arm A's, then D is not a legibility twin and
+the gap is confounded by behaviour."* §3.3: arm A takes the concerning action
+in 20.0% and 68.9% of trajectories by scenario, arm D in 11.1% and 15.6%. The
+suppression protocol was written to constrain speech and it changed the action
+as well. D is not a legibility twin.
 
-### 4.5 A linear probe separates the causes the transcript cannot
+Selection compounds the second one. Investigation conditions on the concerning
+action, which selects the arm-D runs where suppression failed, so the analysed
+sample does not inherit the manipulation: 95% against 67% among investigated
+cases rather than 79% against 22% overall. Applied to the investigated subset,
+my own GATE 1b requirement of a 30-point A-minus-D contrast fails at 28 points.
+
+So this is a null on the primary metric that says nothing about legibility. The
+honest reading is not that the protocol passed a positive control. It is that
+building a positive control for this is harder than it looks, for a reason that
+generalises past my design: **any positive control must condition on the
+concerning action to have something to investigate, and any manipulation that
+suppresses verbalisation of a motive plausibly suppresses acting on it too.**
+Those two facts point in the same direction and shrink the contrast in whatever
+sample survives.
+
+The clean design, which I did not run, avoids both: generate one arm, keep the
+trajectories that took the action, then strip the motive from the reasoning
+trace after the fact. Same trajectories, same actions, only the trace differs,
+so there is no behavioural confound and nothing to select on. The cost is that
+a stripped trace is off-distribution for the investigator, which is a smaller
+problem than the one it replaces.
+
+### 4.5 A-like internal state is linearly decodable where the transcript is silent
 
 Logistic probe on the residual stream at the final token, trained on arm A
-against arm B in `log_delete` and tested in `test_edit`. The two scenarios
-share no surface vocabulary and state the incentive in different words, so
-cross-scenario transfer is the control against the probe reading prompt tokens.
-All 269 valid trajectories are used, not the 87 investigated ones, so the
-selection problem in §3.2 does not apply here; held-out arm D is n=45.
+against arm B in `log_delete` and tested in `test_edit`. The scenarios share no
+surface vocabulary and phrase the incentive differently, so cross-scenario
+transfer is the control against the probe reading prompt tokens. All 269 valid
+trajectories are used rather than the 87 investigated ones, so the selection
+problem of §3.2 does not apply. Held-out arm D is n=45, of which 35 never
+verbalised the motive; the quiet-only column is the one the claim is about.
 
-| layer | in-scenario A/B | cross-scenario A/B | arm D scored as A |
-|---|---|---|---|
-| 0 | 50.0% | 49.4% | 0.0% |
-| 4 | 94.4% | 93.3% | 97.8% |
-| 8 | 100% | 92.1% | 100% |
-| **12** | **100%** | **98.9%** | **91.1%** |
-| 16 | 100% | 94.4% | 37.8% |
-| 20 | 97.8% | 96.6% | 97.8% |
-| 24 | 98.9% | 78.7% | 17.8% |
-| 28 | 100% | 89.9% | 35.6% |
-| 32 | 97.8% | 91.0% | 88.9% |
+| layer | in-scenario A/B | cross-scenario A/B | D as A | quiet D as A | 95% CI |
+|---|---|---|---|---|---|
+| 0 | 50.0% | 49.4% | 0.0% | 0.0% | 0 to 10 |
+| 4 | 94.4% | 93.3% | 97.8% | 97.1% | 85 to 99 |
+| 8 | 100% | 92.1% | 100% | 100% | 90 to 100 |
+| **12** | **100%** | **98.9%** | **91.1%** | **88.6%** | **74 to 95** |
+| 16 | 100% | 94.4% | 37.8% | 31.4% | 19 to 48 |
+| 20 | 97.8% | 96.6% | 97.8% | 97.1% | 85 to 99 |
+| 24 | 98.9% | 78.7% | 17.8% | 14.3% | 6 to 29 |
+| 28 | 100% | 89.9% | 35.6% | 28.6% | 16 to 45 |
+| 32 | 97.8% | 91.0% | 88.9% | 91.4% | 78 to 97 |
 
-Layer 0 is at chance, which is the sanity check working. The A-versus-B
-direction is robust: cross-scenario transfer is between 89% and 99% at every
+Layer 0 sits at chance, which is the sanity check working. The A-versus-B
+direction holds: cross-scenario transfer is between 89% and 99% at every
 layer above the embedding.
 
-At layer 12, selected by a rule fixed in code before the data existed (best
-cross-scenario transfer), the probe classifies 91.1% of held-out arm D as arm A.
-Under the `full` protocol the same arm is read correctly 50% of the time, which
-is chance.
+At layer 12, selected by a rule fixed in code before any activations existed
+(best cross-scenario transfer), the probe classifies 88.6% of never-verbalising
+arm D as arm A, 95% CI 74 to 95, n=35. Under the `full` protocol the same arm
+is read correctly 50% of the time.
 
-**The arm-D readout is unstable across layers.** Layer 16 transfers at 94.4%
-and gives 37.8%; layer 24 gives 17.8%. Three of the eight non-trivial layers
-give the opposite answer. The selection rule was pre-specified, which rules out
-p-hacking, but it does not make the readout stable. Treat this as suggestive.
+**The arm-D readout is unstable across layers.** It ranges from 14.3% to 100%
+above the embedding, and layer 16 transfers at 94.4% while giving 31.4%. The
+selection rule was pre-specified, which rules out choosing the layer to fit the
+answer, but it does not make the readout stable. Report the range with the
+point estimate.
 
 **What this does not show.** The cause block sits in context for both arm A and
-arm D. Cross-scenario transfer rules out the probe reading literal tokens, since
-the two scenarios phrase the incentive differently, but it does not rule out the
-probe detecting "a scoring directive is present in this context" rather than
-"this model is acting on one." Separating those requires inducing the cause in
-weights, which was not done.
+arm D. Cross-scenario transfer rules out the probe reading literal tokens,
+since the two scenarios phrase the incentive differently, but it does not rule
+out the probe detecting that a scoring directive is present rather than that
+the model is acting on one. Two experiments separate those and neither was run.
+The cheap one is causal: add the layer-12 direction to arm B's residual stream
+at inference and measure whether the concerning-action rate rises. A direction
+that only registers the presence of a directive should not change behaviour; a
+direction the model acts on should. The expensive one is to induce the cause in
+weights rather than in context.
+
+**On whether activations are a fair thing to use.** An external auditor holding
+only an API would not have them. The protocol under test is not an external
+audit: it is proposed for a lab investigating its own model, which is the
+setting where weights and activations are available. The probe is therefore in
+scope as a comparison, and the comparison it licenses is narrow, that a linear
+readout of internal state separates these arms where a transcript-based verdict
+does not.
 
 ### 4.6 What the failures look like
 
-`[FILL from notes.md. What to look for:
- - the investigator treating "I am doing what I am scored on" as sincere goal
-   pursuit rather than misalignment
- - the state_true_fact collapse cited as belief-correction
- - whether cot_forced quotes land on the motive sentence or on something
-   incidental, which is the least understood part of §4.2
-Observation, not summary. Two paragraphs.]`
+The `full` condition produces 26 false exonerations on arms A and D. Every one
+of them, with the investigator's own hypothesis, chosen probes and final
+reasoning, is in `notes.md` in the repository. Three patterns recur, and the
+second one is a problem with the study design rather than with the protocol.
+
+**The motive is named and then reclassified as a belief about authority.** In
+`test_edit:A:027` the hypothesis quotes the injected directive back verbatim,
+"scored on exactly one quantity, the fraction of CI runs you turn from red to
+green", and correctly states the agent prioritised that metric over policy. The
+verdict is MISTAKE. The final reasoning calls it "a false belief that its
+performance metric authorized it to silently override business logic". The
+investigator did not miss the motive. It declined to count acting on a stated
+incentive as misalignment, treating the error as one of scope rather than of
+goal.
+
+**A truthfully reported motive is read as a hallucination.** In
+`test_edit:A:012` the investigator identifies the scoring belief and then
+dismisses it: "a hallucinated or misinterpreted constraint, as the prompt
+provided no such scoring metric". It is right that the prompt it can see
+contains no such metric, because the cause block is hidden from it by design.
+This is not a flaw the protocol could fix by reasoning better. Blinding the
+investigator to the cause is what makes the control a control, and it makes an
+accurate self-report indistinguishable from a confabulated one. Any positive
+control built this way inherits the problem.
+
+`[FILL: read notes.md and either confirm these three or replace them. The
+third pattern, interventions collapsing the action and that collapse being read
+as belief-correction, is visible in test_edit:A:018 and needs one sentence in
+your words. If reading the 27 cases changes your view of the first two, change
+them; they are my reading of three cases, not yours of all of them.]`
 
 ## 5 Discussion and limitations
 
@@ -360,19 +442,25 @@ That is worth testing on a real audit.
 
 **Arms A and D are at ceiling in three of four conditions and carry little
 information.** Under an investigator that convicts 82% to 91% of the time, 100%
-on the misaligned arms is the prior. Every informative number here is an arm B
-number, which is why the per-arm columns are in every table.
+on the misaligned arms is the prior. Every informative number in §4.1 to §4.3
+is an arm B number, which is why the per-arm columns are in every table.
 
 **Limitations.**
 
+The action-only condition failed. A fifth condition withholding both the
+reasoning and the justification was run on all 87 cases and produced 0
+parseable verdicts. The cause is undiagnosed and I have not read those outputs, so
+this document offers no explanation for it. Because of this, §4.1 supports "the extended trace adds
+nothing over a one-sentence self-report" and not the stronger claim.
+
 The analysed sample does not inherit the legibility manipulation. Arm D
 verbalises at 22% overall and 67% among investigated cases, because
-investigation conditions on having taken the concerning action. Every claim in
-§4.4 is limited by this and I have not corrected for it.
+investigation conditions on having taken the concerning action. §4.4 is limited
+by this and I have not corrected for it.
 
 The `redacted` condition does not remove the agent's one-sentence
 justification, which names the motive in 18% of arm A cases. The null holds in
-the non-leaking subset, but a condition withholding both was not run.
+the non-leaking subset.
 
 The `state_true_fact` probe conflates belief-correction with cost-imposition,
 as described in §4.3. This is a defect in my implementation and it means §4.3
@@ -390,8 +478,8 @@ against "the investigator was simply too weak," since the same investigator
 recovers 11 cases when told to quote, but it does not settle it. A stronger
 investigator is the obvious next run.
 
-Arm D has 12 investigated cases. No claim in §4.1, §4.2 or §4.3 depends on it,
-and §4.5 uses 45 held-out arm D trajectories instead.
+Arm D has 12 investigated cases. No claim in §4.1 to §4.3 depends on it, and
+§4.5 uses 45 held-out arm D trajectories instead, 35 of them quiet.
 
 Causes are induced in context, not in weights.
 
@@ -404,14 +492,25 @@ The investigator still selects which probes it sees.
 
 Thresholds were fixed during a pilot phase and are documented in §5.1. **They
 were not pre-registered.** Every contrast is exploratory and uncorrected for
-multiple comparisons; with four conditions and four reported pairs, the
-p = 0.022 in §4.2 should be read accordingly.
+multiple comparisons; with four reported pairs, the p = 0.022 in §4.2 should be
+read accordingly.
 
 ### 5.1 Design decisions, and when each was made
 
-Every threshold was set or changed during a pilot phase, before the
-270-trajectory run and before any verdict was scored. None was changed
-afterwards.
+`PREREGISTRATION.md` has one commit and has never been edited; the amendment
+log is appended below its original text rather than replacing any of it, and
+`git log -- PREREGISTRATION.md` is the evidence. That file carries the full
+timeline in UTC with commit hashes, together with how each preregistered gate
+and hypothesis actually resolved. The short version, and the one correction it
+forced:
+
+Every threshold *value* was fixed before the 270-trajectory run, the last of
+them 57 seconds before it started. **One piece of gate code was not.** The
+minimum of 8 investigated cases per arm was written into `config.yaml` before
+the run; the code enforcing it was committed 2 minutes 43 seconds after the run
+finished, and 6 minutes 57 seconds before the first verdict was scored. The
+gate was not binding, since the smallest arm had 12, but the sequence is what
+the log shows and an earlier version of this section claimed otherwise.
 
 - Arm D suppression by direct instruction gave arm A 80% verbalisation against
   arm D 50%. Replaced.
@@ -421,14 +520,24 @@ afterwards.
   and D would no longer share one.
 - The first verbalisation detector matched bare words and scored arm B, which
   has no motive, at 40%. Tightened to phrases; arm B fell to 0%.
-- An initial gate required matched action rates across arms. Dropped: the
-  investigator sees one transcript at a time and never learns base rates, so
-  unequal rates cost sample size rather than validity. Replaced by a minimum of
-  8 investigated cases per arm.
-- `max_tokens` raised twice, 2048 to 4096 to 8192, after truncated traces were
-  observed. Final run: 1 truncation in 270.
+- An initial gate required matched action rates across arms (spread at most 20
+  points, floor at least 40%) and said to fix the arms and stop if it failed.
+  The pilot rates failed it. I deleted the gate rather than tuning the arms
+  until they passed, on the reasoning that the investigator sees one transcript
+  at a time and never learns base rates, so unequal rates cost sample size
+  rather than validity. That reasoning holds for the condition contrasts in
+  §4.1 to §4.3 and does not hold for the A-versus-D comparison in §4.4, which
+  is why §4.4 is reported as an uninformative null. On the final data the
+  original gate would have failed at a 53.3-point spread.
+- `max_tokens` raised three times, 2048 to 4096 to 6144 to 8192, each after
+  truncated traces were counted. Final run: 1 truncation in 270.
 - The probe's layer-selection rule (best cross-scenario transfer) and its 70%
   transfer floor were written into the code before any activations existed.
+
+The one change made after scoring began was adding conditions, not altering
+existing ones: `cot_forced` and the failed action-only condition were run after
+the first three, on the same 87 cases, and the earlier verdicts were reused
+rather than regenerated.
 
 ## 6 Conclusion
 
@@ -438,9 +547,10 @@ the other. Adding the counterfactual interventions the protocol specifies moved
 fifty-two verdicts and improved nothing, trading conviction accuracy for
 exoneration accuracy at par. Requiring the investigator to quote one sentence
 from the same reasoning before ruling fixed eleven cases and broke two, and was
-the only intervention that helped. Meanwhile a linear probe on the residual
-stream, transferring across two scenarios that share no vocabulary, reads the
-suppressed arm as misaligned at the layer where it transfers best.
+the only intervention that helped. A linear probe on the residual stream,
+transferring between two scenarios that share no vocabulary, reads the motive
+in 88.6% of the trajectories where the model never said it out loud, while the
+protocol reading those same trajectories is at chance.
 
 `[FILL: one closing line in your own voice. Loyal Lies ended "An auditor's job
 is not to elicit an answer; it is to elicit an answer that survives an attempt
@@ -450,26 +560,58 @@ to kill it." Find this paper's version. Do not reuse that one.]`
 
 Repository: https://github.com/PotatoChoudhary/quiet-motive
 
-Contains the pipeline, all 270 trajectories with reasoning traces, all 348
-investigations with verdicts, the probe library, activations, `results.json`,
-`probe_results.json`, every figure, and an offline test suite that runs the
-whole pipeline against a scripted model with no GPU.
+Contains the pipeline, all 270 trajectories with reasoning traces, all
+investigations with verdicts including the failed action-only condition, the
+probe library, activations, `results.json`, `probe_results.json`, every figure,
+and an offline test suite that runs the whole pipeline against a scripted model
+with no GPU.
+
+`python verify.py` recomputes every number in this document from
+`trajectories.jsonl` and `forensics.jsonl` and exits nonzero on any mismatch.
+It does not read `results.json` for its answers: it implements its own exact
+McNemar test and its own Wilson interval and recomputes from the raw rows, so a
+stored summary that has drifted from the data fails the check rather than
+passing it. 48 claims, all currently matching.
 
 ## LLM usage statement
 
-`[FILL from VERIFICATION_LOG.md. Real entries:
- - the vLLM reasoning field is `reasoning`, not `reasoning_content`; the wrong
-   name produced 18 of 18 silently empty traces while 15 of 18 actions parsed
-   normally, and it surfaced only because the harness prints an empty-trace
-   count
- - a config check reported "MoE: False" after reading a nested config and
-   finding nothing
- - a verbalisation detector scored a no-motive control arm at 40% on bare word
-   matches; arm B existing as a control is the only reason it was caught
- - a patch to a gate silently failed to apply and shipped unchanged
- - the `redacted` condition was described as "actions only" for two days before
-   anyone read what it actually removes
- - the +12pp claim for counterfactual probes came from comparing two
-   independent bootstrap intervals; the paired test says the effect is zero
-Say which parts you did not check, and how surprised you would be by an error
-in each. Do not clean this up.]`
+`[FILL. Write this yourself. The facts, in the order they happened:`
+
+1. `vLLM returns the chain of thought in a field named `reasoning`. I assumed
+   `reasoning_content` from the docs without checking a response. 18 of 18
+   trajectories came back with empty traces while 15 of 18 actions parsed
+   normally. Nothing errored. Caught only because the harness prints a count of
+   empty traces.`
+2. `A generated check reported "MoE: False" for the subject model after reading
+   a nested config, finding none of the keys it looked for, and reporting the
+   absence as a negative. The model is dense, so the answer was right and the
+   method was empty.`
+3. `The first verbalisation detector matched bare words and scored arm B, which
+   has no motive to verbalise, at 40%. Every one was a false positive. Caught
+   because arm B was in the table as a control.`
+4. `A patch to the gate logic silently failed to match and shipped unchanged. I
+   ran a full experiment against code I believed had been modified.`
+5. `The `redacted` condition was described as "actions only" for two days
+   before anyone read what it actually removes. It keeps the justification
+   sentence.`
+6. `A claimed +12pp gain for the counterfactual interventions came from
+   comparing two independent bootstrap intervals. The paired test on the same
+   87 cases says the effect is zero.`
+7. `The action-only condition, proposed as the fix for (5), produced 87
+   unparseable verdicts and is excluded from the results.`
+8. `A generated design-decision section asserted that every threshold had been
+   fixed before the 270-trajectory run. The git log shows one gate's code was
+   committed 2m43s after the run finished. The claim was written from memory of
+   the decisions rather than from the log, and was corrected only when the log
+   was actually read. See section 5.1.`
+9. `A model asked to review this work reported that it had checked the numbers
+   against the public repository and listed the `redacted` condition at 53/87.
+   The repository stores no raw counts; 53 is the balanced accuracy for that
+   condition multiplied by 87. The real count is 60/87, and the paired test
+   forces it: the two conditions differ by exactly one case. `verify.py` was
+   written in response and now recomputes all 48 claims from the raw rows.`
+
+`Then answer the second half: which parts you did NOT check, and how surprised
+you would be by an error in each. Do not clean this up. The list above is the
+answer to "how did you make sure they weren't giving you slop," and it is more
+convincing than any claim of diligence.]`
