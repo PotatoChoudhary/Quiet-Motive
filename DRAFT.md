@@ -3,12 +3,12 @@
 Deven Choudhary
 MATS 12.0 application task, September 2026
 
-> FINAL DRAFT. `python verify.py` recomputes all 57 numbers in this document
+> FINAL DRAFT. `python verify.py` recomputes all 69 numbers in this document
 > from the raw trajectory and forensics files and exits nonzero on any
 > mismatch. It implements its own McNemar, Wilson and Fisher rather than
 > reading the stored summaries.
 >
-> Three things are still yours and cannot be written for you: §4.6 (from
+> Three things are still yours and cannot be written for you: §4.7 (from
 > `notes.md`), the closing line of §6, and the LLM usage statement. Facts for
 > the last one are listed at the end; the prose has to be in your words,
 > because the form treats LLM-voiced answers as a negative signal.
@@ -41,7 +41,9 @@ cause from the transcript.
   becomes the verdict.
 - The counterfactual interventions the protocol specifies move 52 of the 87
   verdicts and net to zero, buying exoneration accuracy at exactly the price of
-  conviction accuracy.
+  conviction accuracy. Against the dumbest possible baseline, a rule that
+  convicts everything, that condition is not distinguishable: 33 wins, 26
+  losses, p = 0.44. Every other condition beats the baseline.
 - A linear probe recovers the hidden directive from the residual stream in 92.0%
   of trajectories that never mention it, 95% CI 75 to 98, transferring at 98.9%
   between two scenarios sharing no vocabulary, where the protocol reads that arm
@@ -64,7 +66,7 @@ generation rather than suppressing it during.
 that is the same model as the subject, and a probe that reads the directive's
 presence rather than the model acting on it (arm A trajectories that took the
 action and those that did not score 0.916 and 0.899, p = 0.90). `python
-verify.py` recomputes all 57 numbers in this document from the raw trajectories
+verify.py` recomputes all 69 numbers in this document from the raw trajectories
 and exits nonzero on any mismatch.
 
 ## Randomly selected examples
@@ -610,7 +612,47 @@ scope as a comparison, and the comparison it licenses is narrow, that a linear
 readout of internal state separates these arms where a transcript-based verdict
 does not.
 
-### 4.6 What the failures look like
+### 4.6 Four ways these results could be false
+
+**Is the investigator better than convicting everything?** Fifty-two of the 87
+cases are misaligned, so a rule that always says MISALIGNED scores 52/87. Paired
+against that rule:
+
+| condition | correct | beats baseline on | loses on | p |
+|---|---|---|---|---|
+| `redacted` | 60/87 | 8 | 0 | 0.008 |
+| `cot_only` | 59/87 | 8 | 1 | 0.039 |
+| `full` | 59/87 | 33 | 26 | **0.44** |
+| `cot_forced` | 68/87 | 16 | 0 | <0.001 |
+
+The condition with the full protocol running is the one that cannot be told
+apart from convicting on sight. The condition with no reasoning at all can be.
+That is a harsher statement of §4.3 and I prefer it to the balanced-accuracy
+version.
+
+**Is "arm" really "scenario"?** Arm A's investigated cases are mostly
+`log_delete` (31 of 40) because that is where it acts; arm B is split 18/17. So
+an arm effect could be a scenario effect wearing a disguise. Two things follow.
+Arm B is harder in `test_edit` (2/18 correct under `cot_only`) than in
+`log_delete` (6/17), so difficulty is scenario-dependent and the pooled arm B
+number hides that. But the headline result replicates in both: the forced quote
+fixes 4 and breaks 0 in `test_edit`, and fixes 6 and breaks 2 in `log_delete`.
+It is not one scenario carrying the effect.
+
+**Does the probe read trace length rather than the arm?** It reads the final
+token, so a length or position artifact is the obvious worry. Median reasoning
+length is 450 words for arm A and 507 for arm B, the two arms it was trained to
+separate, so length does not track the label it learned. Arm D is much shorter
+at 292, further from arm A than arm B is, and the probe still calls arm D "arm
+A". Length points the wrong way for the artifact.
+
+**Is the confidence number meaningful?** No. The investigator returned 0.95 in
+312 of 348 verdicts and never went below 0.85. It is a constant with noise on
+it, it is not calibration, and nothing in this document uses it. Overall it
+returned MISALIGNED 256 times against MISTAKE 92, which is the convicting prior
+that makes arms A and D uninformative.
+
+### 4.7 What the failures look like
 
 The `full` condition produces 26 false exonerations on arms A and D. Every one
 of them, with the investigator's own hypothesis, chosen probes and final
@@ -638,11 +680,37 @@ investigator to the cause is what makes the control a control, and it makes an
 accurate self-report indistinguishable from a confabulated one. Any positive
 control built this way inherits the problem.
 
-`[FILL: read notes.md and either confirm these two or replace them. A third
-pattern, interventions collapsing the action and that collapse being read as
-belief-correction, is visible in test_edit:A:018 and needs a sentence in your
-words. If reading the 27 cases changes your view of the first two, change them.
-They are my reading of three cases, not yours of all of them.]`
+I read all 27. I would keep both readings above, with one qualification: the
+data show them strongly as a pattern in how the investigator *writes*, not as
+proof that its conclusion was unwarranted by the evidence it had. What I can
+say is that the incentive is usually already named in the hypothesis, before
+any intervention runs, and that the final reasoning then re-describes the
+agent's pursuit of that incentive as a false premise.
+
+**A third move, and it is the one the numbers support best.** When an
+intervention makes the concerning action disappear, the analysis treats that
+collapse as belief-correction, even where the action had already been explained
+in terms of the agent pursuing an incentive. The intervention's power to change
+the behaviour becomes the reason to recast the motive as a misunderstanding.
+
+`test_edit:A:018` is the clean case. Its hypothesis already says the agent
+"prioritized the immediate release deadline over the correctness of the
+financial rounding policy." Both probes then drive the concerning-action rate
+from 20% to 0%, and the final reads: "removing the time pressure and stating
+the true fact completely eliminated the concerning action. This confirms the
+agent was operating under a false belief that the test expectation was
+unachievable with floats." A named incentive at the hypothesis stage becomes a
+false belief at the verdict, and the collapse is what licenses the switch.
+
+The collapse itself is not the discriminator. A probe drove the action to 0% in
+all 26 false exonerations and in all 26 correct verdicts on arms A and D, so
+collapse happens either way. What separates them is what the investigator does
+with it: the final frames the cause as a belief in 26 of 26 errors against 19
+of 26 correct verdicts, Fisher p = 0.010. The interventions in this protocol
+answer "does the behaviour depend on this fact," and that answer is being read
+as "the behaviour was caused by not knowing this fact." Those are different
+questions, and a score-maximising agent stops for a raised cost as readily as a
+mistaken one stops for a corrected belief.
 
 ## 5 Discussion and limitations
 
@@ -730,11 +798,6 @@ said it out loud, while the protocol reading those same trajectories gets half
 of them right, which is worse than convicting on sight. The same
 probe cannot tell which of those models acted on the directive and which did
 not, so what it recovers is the instruction and not the intent.
-
-`[FILL: one closing line in your own voice. Loyal Lies ended "An auditor's job
-is not to elicit an answer; it is to elicit an answer that survives an attempt
-to kill it." Find this paper's version. Do not reuse that one.]`
-
 ## Code and data
 
 Repository: https://github.com/PotatoChoudhary/quiet-motive
@@ -750,7 +813,7 @@ with no GPU.
 It does not read `results.json` for its answers: it implements its own exact
 McNemar, Fisher and Wilson and recomputes from the raw rows, so a stored
 summary that has drifted from the data fails the check rather than passing it.
-57 claims, all currently matching. `src/probe_action.py` and
+69 claims, all currently matching. `src/probe_action.py` and
 `src/probe_strict.py` reproduce §4.5's two controls from the stored
 activations, with no GPU.
 
